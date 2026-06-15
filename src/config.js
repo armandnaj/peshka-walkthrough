@@ -1,0 +1,127 @@
+import * as THREE from 'three';
+
+const assetPath = (path) => `${import.meta.env.BASE_URL}${path}`;
+
+export const CONFIG = {
+  models: {
+    optimized: assetPath('models/peshka.optimized.glb'),
+    fallback: assetPath('models/peshka.glb'),
+    centerAndGround: true,
+  },
+  materials: {
+    envMapIntensity: 0.24,
+    defaultMetalness: 0.08,
+    minRoughness: 0.32,
+    maxRoughness: 0.9,
+  },
+  renderer: {
+    exposure: 1.14,
+    desktopPixelRatio: 1.75,
+    mobilePixelRatio: 1.2,
+  },
+  scene: {
+    background: 0x11151c,
+    fogDensity: 0.02,
+    cameraFov: 65,
+    cameraNear: 0.05,
+    cameraFar: 300,
+    reflections: true,
+  },
+  player: {
+    height: 1.65,
+    walkSpeed: 2.2,
+    runSpeed: 4,
+    lookSpeed: 0.0028,
+    keyboardLookSpeed: 1.35,
+    zoomFov: 42,
+    zoomSpeed: 11,
+    verticalSpeed: 1.4,
+    minHeight: 0.75,
+    maxHeight: 3.2,
+    startPosition: new THREE.Vector3(0, 1.65, 2.7),
+    collision: {
+      enabled: true,
+      stepHeight: 0.38,
+      maxDrop: 4,
+      gravity: 14,
+      minGroundNormalY: 0.58,
+      groundSnapSpeed: 14,
+      probeInterval: 0.04,
+    },
+  },
+  door: {
+    nodeName: '',
+    openAngle: -Math.PI / 2.05,
+    interactionDistance: 3,
+  },
+  lighting: {
+    defaultPreset: 'evening',
+    modelPracticals: {
+      materialName: /^Light_01$/i,
+      color: 0xffc98f,
+      intensity: 0.34,
+      distance: 3.8,
+      decay: 2,
+      minSpacing: 0.9,
+      maxLights: 18,
+    },
+    practicals: [
+      { position: [-3, 2.4, 0], intensity: 0.5, distance: 5.5 },
+      { position: [0, 2.4, 0], intensity: 0.58, distance: 5.5 },
+      { position: [3, 2.4, 0], intensity: 0.5, distance: 5.5 },
+      { position: [0, 1.8, 2.4], intensity: 0.08, distance: 3.2 },
+    ],
+    exterior: {
+      position: [0, 2.8, 5.2],
+      color: 0x8bbcff,
+      intensity: 1.25,
+      distance: 11,
+    },
+    presets: {
+      evening: {
+        label: 'Evening',
+        background: 0x11151c,
+        fogDensity: 0.02,
+        hemisphere: { sky: 0x91a7cf, ground: 0x5b3f2e, intensity: 0.46 },
+        sun: { color: 0x9db9ff, intensity: 0.42 },
+        practicalIntensity: 1,
+        exteriorIntensity: 1,
+        environmentIntensity: 0.12,
+        exposure: 1,
+        bloom: 0.16,
+      },
+      day: {
+        label: 'Day',
+        background: 0xdfe8ef,
+        fogDensity: 0.006,
+        hemisphere: { sky: 0xcfe3ff, ground: 0x8c735e, intensity: 1.45 },
+        sun: { color: 0xffe0b0, intensity: 2.4 },
+        practicalIntensity: 0.16,
+        exteriorIntensity: 0,
+        environmentIntensity: 0.72,
+        exposure: 1,
+        bloom: 0.05,
+      },
+    },
+  },
+  postFX: {
+    ssao: {
+      enabled: true,
+      mobileEnabled: false,
+      kernelRadius: 14,
+      minDistance: 0.004,
+      maxDistance: 0.16,
+    },
+    bloom: {
+      enabled: true,
+      threshold: 0.88,
+      strength: 0.2,
+      radius: 0.36,
+    },
+    vignette: {
+      enabled: true,
+      darkness: 0.72,
+      offset: 1.05,
+    },
+  },
+};
