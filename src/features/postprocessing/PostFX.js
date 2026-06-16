@@ -76,7 +76,47 @@ export class PostFX {
     this.bloom.strength = Number(value);
   }
 
+  setBloomThreshold(value) {
+    this.bloom.threshold = Number(value);
+  }
+
+  setBloomRadius(value) {
+    this.bloom.radius = Number(value);
+  }
+
   setSSAOEnabled(enabled) {
     this.ssao.enabled = enabled;
+  }
+
+  setSSAORadius(value) {
+    this.ssao.kernelRadius = Number(value);
+  }
+
+  setSSAODistance(value) {
+    this.ssao.maxDistance = Number(value);
+  }
+
+  setVignetteDarkness(value) {
+    this.vignette.uniforms.darkness.value = Number(value);
+    this.vignette.enabled = Number(value) > 0;
+  }
+
+  resetImageSettings({ bloom }) {
+    this.setBloomStrength(bloom);
+    this.setBloomThreshold(this.config.bloom.threshold);
+    this.setSSAORadius(this.config.ssao.kernelRadius);
+    this.setVignetteDarkness(this.config.vignette.darkness);
+  }
+
+  getSettings() {
+    return {
+      bloom: this.bloom.strength,
+      bloomThreshold: this.bloom.threshold,
+      bloomRadius: this.bloom.radius,
+      ssao: this.ssao.enabled,
+      ssaoRadius: this.ssao.kernelRadius,
+      ssaoMaxDistance: this.ssao.maxDistance,
+      vignette: this.vignette.uniforms.darkness.value,
+    };
   }
 }

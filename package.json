@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "optimize:model": "gltf-transform optimize public/models/peshka.glb public/models/peshka.optimized.glb --compress meshopt --meshopt-level high --texture-compress webp --texture-size 2048 --flatten false --join false --instance false --palette false --simplify false"
+    "optimize:model": "node scripts/optimize-model.mjs"
   },
   "dependencies": {
     "three": "0.180.0"

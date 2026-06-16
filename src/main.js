@@ -5,8 +5,15 @@ import { createRenderer } from './core/createRenderer.js';
 import { createScene } from './core/createScene.js';
 import { disposeModel, loadModel, loadModelFile } from './core/loadModel.js';
 import { DoorInteraction } from './features/interactions/DoorInteraction.js';
+import {
+  createPerformanceAudit,
+  prepareModelForRuntimeCulling,
+} from './features/diagnostics/PerformanceAudit.js';
 import { LightingRig } from './features/lighting/LightingRig.js';
-import { applyMaterialProfiles } from './features/materials/MaterialProfiles.js';
+import {
+  applyMaterialProfiles,
+  tuneModelMaterialsForVisualPreset,
+} from './features/materials/MaterialProfiles.js';
 import { PlayerController } from './features/player/PlayerController.js';
 import { PostFX } from './features/postprocessing/PostFX.js';
 import { HUD } from './ui/HUD.js';
@@ -28,6 +35,76 @@ const player = new PlayerController({
 });
 let currentModel = null;
 let replacingModel = false;
+let renderQuality = 1;
+let activeVisualPreset = 'balanced';
+
+function visualSettings() {
+  return {
+    ...lighting.getSettings(),
+    ...postFX.getSettings(),
+    quality: renderQuality,
+    visualPreset: activeVisualPreset,
+  };
+}
+
+function syncVisualSettings() {
+  hud.setVisualSettings(visualSettings());
+}
+
+function setRenderQuality(value) {
+  renderQuality = Number(value);
+  const basePixelRatio = mobile
+    ? CONFIG.renderer.mobilePixelRatio
+    : CONFIG.renderer.desktopPixelRatio;
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, basePixelRatio * renderQuality),
+  );
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  postFX.resize(window.innerWidth, window.innerHeight);
+}
+
+function setMaterialReflectionQuality(envMapIntensity) {
+  tuneModelMaterialsForVisualPreset(currentModel, envMapIntensity);
+}
+
+function applyVisualPreset(name) {
+  const preset = CONFIG.visualPresets[name];
+  if (!preset) return;
+
+  activeVisualPreset = name;
+  renderer.toneMappingExposure = preset.exposure;
+  lighting.setAmbient(preset.ambient);
+  lighting.setSun(preset.sun);
+  lighting.setPractical(preset.practical);
+  lighting.setTemperature(preset.temperature);
+  lighting.setFog(preset.fog);
+  lighting.setShadows(preset.shadows);
+  lighting.setShadowQuality({
+    mapSize: preset.shadowMapSize,
+    modelShadowLights: preset.modelShadowLights,
+  });
+  postFX.setBloomStrength(preset.bloom);
+  postFX.setBloomThreshold(preset.bloomThreshold);
+  postFX.setBloomRadius(preset.bloomRadius);
+  postFX.setSSAOEnabled(preset.ssao && (!mobile || CONFIG.postFX.ssao.mobileEnabled));
+  postFX.setSSAORadius(preset.ssaoRadius);
+  postFX.setSSAODistance(preset.ssaoMaxDistance);
+  setRenderQuality(preset.quality);
+  setMaterialReflectionQuality(preset.envMapIntensity);
+  syncVisualSettings();
+  hud.setStatus(preset.status);
+}
+
+function refreshPerformanceAudit() {
+  if (!currentModel) {
+    hud.setStatus('Load a model before running performance audit');
+    return;
+  }
+
+  postFX.render();
+  hud.setPerformanceAudit(createPerformanceAudit({ model: currentModel, renderer }));
+  hud.setStatus('Performance audit refreshed');
+}
 
 function readyMessage(modelName) {
   return mobile
@@ -51,7 +128,9 @@ async function replaceModel(file) {
     });
     const previousModel = currentModel;
     currentModel = result.model;
+    prepareModelForRuntimeCulling(currentModel);
     applyMaterialProfiles(currentModel, CONFIG.materials);
+    setMaterialReflectionQuality(CONFIG.visualPresets[activeVisualPreset].envMapIntensity);
     lighting.bindToModel(currentModel);
     door.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
@@ -72,6 +151,7 @@ hud.bind({
     lighting.togglePreset();
     hud.setMode(lighting.getLabel());
     hud.setStatus(`${lighting.getLabel()} lighting`);
+    syncVisualSettings();
   },
   interact: () => door.interact(camera.position),
   fullscreen: async () => {
@@ -99,20 +179,38 @@ hud.bind({
   setExposure: (value) => {
     renderer.toneMappingExposure = Number(value);
   },
+  setAmbient: (value) => lighting.setAmbient(value),
+  setSun: (value) => lighting.setSun(value),
+  setPractical: (value) => lighting.setPractical(value),
+  setTemperature: (value) => lighting.setTemperature(value),
+  setFog: (value) => lighting.setFog(value),
   setBloom: (value) => {
     postFX.setBloomStrength(value);
   },
+  setBloomThreshold: (value) => postFX.setBloomThreshold(value),
+  setVignette: (value) => postFX.setVignetteDarkness(value),
   setSSAO: (enabled) => {
     postFX.setSSAOEnabled(enabled);
   },
+  setSSAORadius: (value) => postFX.setSSAORadius(value),
+  setShadows: (enabled) => lighting.setShadows(enabled),
+  setQuality: setRenderQuality,
+  applyVisualPreset,
+  resetVisuals: () => {
+    applyVisualPreset(activeVisualPreset);
+  },
+  refreshAudit: refreshPerformanceAudit,
   replaceModel,
 });
+syncVisualSettings();
+applyVisualPreset(activeVisualPreset);
 
 window.addEventListener('keydown', (event) => {
   if (event.code === 'KeyR') player.reset();
   if (event.code === 'KeyL') {
     lighting.togglePreset();
     hud.setMode(lighting.getLabel());
+    syncVisualSettings();
   }
   if (event.code === 'KeyF') door.interact(camera.position);
   if (event.code === 'KeyH') hud.setShareReady(!hud.shareReady);
@@ -131,7 +229,9 @@ loadModel({
 })
   .then(({ model, source }) => {
     currentModel = model;
+    prepareModelForRuntimeCulling(currentModel);
     applyMaterialProfiles(currentModel, CONFIG.materials);
+    setMaterialReflectionQuality(CONFIG.visualPresets[activeVisualPreset].envMapIntensity);
     lighting.bindToModel(currentModel);
     door.bindToModel(currentModel);
     player.setCollisionModel(currentModel);

@@ -169,12 +169,17 @@ button {
   line-height: 16px;
 }
 
-#settings {
+#settings,
+#performance-audit {
   position: fixed;
   top: 94px;
   right: max(18px, env(safe-area-inset-right));
-  width: 230px;
-  padding: 15px;
+  z-index: 8;
+  width: min(340px, calc(100vw - 36px));
+  max-height: calc(100vh - 116px);
+  padding: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(17, 18, 20, 0.88);
@@ -183,29 +188,219 @@ button {
   backdrop-filter: blur(18px);
 }
 
-.settings-title {
+#performance-audit {
+  left: max(18px, env(safe-area-inset-left));
+  right: auto;
+}
+
+.settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
   margin-bottom: 14px;
+}
+
+.settings-title {
   font-family: Georgia, serif;
-  font-size: 15px;
+  font-size: 17px;
+}
+
+.settings-subtitle {
+  margin-top: 3px;
+  color: rgba(244, 234, 219, 0.48);
+  font-size: 10px;
+}
+
+#settings-close {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 19px;
+  line-height: 24px;
+}
+
+.settings-section {
+  padding: 12px 0 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.settings-section h2 {
+  margin: 0 0 12px;
+  color: var(--cream);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.preset-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.preset-button {
+  display: grid;
+  width: 100%;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--cream);
+  cursor: pointer;
+  text-align: left;
+}
+
+.preset-button strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.preset-button span {
+  color: rgba(244, 234, 219, 0.52);
+  font-size: 10px;
+}
+
+.preset-button:hover,
+.preset-button:focus-visible,
+.preset-button.is-active {
+  outline: none;
+  border-color: rgba(212, 154, 91, 0.55);
+  background: rgba(212, 154, 91, 0.12);
 }
 
 #settings label {
   display: grid;
-  grid-template-columns: 78px 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 10px;
-  margin-top: 11px;
+  gap: 6px 10px;
+  margin-top: 12px;
   color: var(--muted);
   font-size: 11px;
 }
 
+#settings output {
+  color: rgba(244, 234, 219, 0.48);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 #settings input[type="range"] {
+  grid-column: 1 / -1;
   width: 100%;
   accent-color: var(--accent);
 }
 
 #settings .toggle {
   grid-template-columns: 1fr auto;
+}
+
+.select-control select {
+  min-width: 112px;
+  padding: 6px 24px 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cream);
+  font-size: 11px;
+}
+
+.settings-reset {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid rgba(212, 154, 91, 0.34);
+  border-radius: 9px;
+  background: rgba(212, 154, 91, 0.08);
+  color: var(--cream);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.settings-reset:hover,
+.settings-reset:focus-visible,
+#settings-close:hover,
+#audit-close:hover,
+#audit-close:focus-visible,
+#settings-close:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#audit-close {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 19px;
+  line-height: 24px;
+}
+
+.audit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.audit-grid div {
+  display: grid;
+  gap: 4px;
+  min-height: 66px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.audit-grid div:first-child {
+  grid-column: 1 / -1;
+}
+
+.audit-grid span,
+.audit-list small {
+  color: rgba(244, 234, 219, 0.5);
+  font-size: 10px;
+}
+
+.audit-grid strong {
+  color: var(--cream);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.audit-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-list li {
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.audit-list strong {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--cream);
+  font-size: 11px;
 }
 
 #interaction-prompt {
@@ -363,11 +558,18 @@ button {
     display: none;
   }
 
-  #settings {
+  #settings,
+  #performance-audit {
     z-index: 6;
-    top: auto;
+    top: max(86px, env(safe-area-inset-top));
     right: 12px;
-    bottom: 78px;
+    bottom: 76px;
+    width: min(330px, calc(100vw - 24px));
+    max-height: none;
+  }
+
+  #performance-audit {
+    left: 12px;
   }
 
   #desktop-hint,

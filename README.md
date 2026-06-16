@@ -103,7 +103,7 @@ npm install
 npm run optimize:model
 ```
 
-This creates `public/models/peshka.optimized.glb` with Meshopt geometry compression, WebP textures, and a 2048 px texture cap. The app automatically tries the optimized model first and falls back to the original GLB if it is absent or cannot load.
+This creates `public/models/peshka.optimized.glb` with WebP textures, a 1024 px texture cap, and high-precision Meshopt geometry compression. Positions and normals use 16-bit quantization to avoid visible jitter on thin or overlapping architectural surfaces. The app automatically tries the optimized model first and falls back to the original GLB if it is absent or cannot load.
 
 Keep the original GLB locally as the source asset and runtime fallback. It is excluded from Git because it exceeds GitHub's regular file-size limit; the deployable optimized GLB remains versioned. Missing HDR files do not break the app because the presentation lighting is generated in Three.js.
 
