@@ -28,15 +28,15 @@ body::before {
   z-index: 2;
   content: "";
   background:
-    radial-gradient(circle at 16% 10%, rgba(255, 232, 184, 0.12), transparent 26%),
-    radial-gradient(circle at 80% 70%, rgba(42, 28, 20, 0.1), transparent 36%),
-    linear-gradient(115deg, rgba(255, 242, 202, 0.05), rgba(23, 18, 24, 0.055)),
+    radial-gradient(circle at 16% 10%, rgba(255, 236, 198, 0.075), transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(42, 28, 20, 0.035), transparent 38%),
+    linear-gradient(115deg, rgba(255, 245, 215, 0.035), rgba(42, 55, 90, 0.025)),
     repeating-linear-gradient(
       0deg,
-      rgba(255, 255, 255, 0.012) 0,
-      rgba(255, 255, 255, 0.012) 1px,
+      rgba(255, 255, 255, 0.006) 0,
+      rgba(255, 255, 255, 0.006) 1px,
       transparent 1px,
-      transparent 6px
+      transparent 10px
     );
   mix-blend-mode: soft-light;
   opacity: 0;
@@ -57,11 +57,11 @@ body::after {
 }
 
 body.poster-mode::before {
-  opacity: 0.54;
+  opacity: 0.26;
 }
 
 body.poster-mode::after {
-  opacity: 0.5;
+  opacity: 0.22;
 }
 
 button,

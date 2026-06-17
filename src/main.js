@@ -45,30 +45,32 @@ const ILLUSTRATION_STYLE = {
   label: 'Poster on',
   status: 'Illustrated wine-bar poster style',
   visual: {
-    exposure: 1.18,
-    ambient: 1.28,
-    sun: 0.34,
-    practical: 1.32,
-    fog: 0.78,
-    bloom: 0.18,
-    bloomThreshold: 0.8,
-    bloomRadius: 0.46,
+    exposure: 1.42,
+    ambient: 1.85,
+    sun: 0.55,
+    practical: 1.18,
+    fog: 0.42,
+    bloom: 0.08,
+    bloomThreshold: 0.88,
+    bloomRadius: 0.34,
+    vignette: 0.16,
   },
   postFX: {
-    strength: 0.88,
-    levels: 8,
-    grain: 0.018,
-    edgeStrength: 0.12,
-    paperWarmth: 0.38,
-    colorSimplify: 0.32,
-    toonStrength: 0.26,
-    shadowLift: 0.22,
-    saturation: 1.18,
-    paletteStrength: 0.34,
-    inkColor: 0x18110f,
+    strength: 0.76,
+    levels: 10,
+    grain: 0.005,
+    edgeStrength: 0.05,
+    paperWarmth: 0.22,
+    colorSimplify: 0.24,
+    toonStrength: 0.12,
+    shadowLift: 0.34,
+    blackLift: 0.22,
+    saturation: 1.24,
+    paletteStrength: 0.24,
+    inkColor: 0x2a2017,
   },
   materials: {
-    colorStrength: 0.26,
+    colorStrength: 0.18,
     flatShading: true,
   },
 };
@@ -133,6 +135,7 @@ function setIllustrationStyle(enabled) {
     postFX.setBloomStrength(ILLUSTRATION_STYLE.visual.bloom);
     postFX.setBloomThreshold(ILLUSTRATION_STYLE.visual.bloomThreshold);
     postFX.setBloomRadius(ILLUSTRATION_STYLE.visual.bloomRadius);
+    postFX.setVignetteDarkness(ILLUSTRATION_STYLE.visual.vignette);
   } else {
     const preset = CONFIG.visualPresets[activeVisualPreset];
     renderer.toneMappingExposure = preset.exposure;
@@ -143,6 +146,7 @@ function setIllustrationStyle(enabled) {
     postFX.setBloomStrength(preset.bloom);
     postFX.setBloomThreshold(preset.bloomThreshold);
     postFX.setBloomRadius(preset.bloomRadius);
+    postFX.setVignetteDarkness(preset.vignette);
   }
 
   postFX.setIllustrationSettings(

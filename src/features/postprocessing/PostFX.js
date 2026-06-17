@@ -45,6 +45,7 @@ const IllustrationShader = {
     colorSimplify: { value: 0.12 },
     toonStrength: { value: 0.18 },
     shadowLift: { value: 0.12 },
+    blackLift: { value: 0.16 },
     saturation: { value: 1 },
     paletteStrength: { value: 0 },
     inkColor: { value: new THREE.Color(0x1c1715) },
@@ -67,6 +68,7 @@ const IllustrationShader = {
     uniform float colorSimplify;
     uniform float toonStrength;
     uniform float shadowLift;
+    uniform float blackLift;
     uniform float saturation;
     uniform float paletteStrength;
     uniform vec3 inkColor;
@@ -81,30 +83,34 @@ const IllustrationShader = {
     }
 
     vec3 closestPosterColor(vec3 color) {
-      vec3 palette = vec3(0.055, 0.095, 0.18);
+      vec3 palette = vec3(0.08, 0.13, 0.28);
       float best = distance(color, palette);
 
-      vec3 candidate = vec3(0.88, 0.80, 0.54);
+      vec3 candidate = vec3(0.93, 0.84, 0.58);
       float score = distance(color, candidate);
       if (score < best) { best = score; palette = candidate; }
 
-      candidate = vec3(0.76, 0.32, 0.12);
+      candidate = vec3(0.78, 0.36, 0.14);
       score = distance(color, candidate);
       if (score < best) { best = score; palette = candidate; }
 
-      candidate = vec3(0.63, 0.34, 0.13);
+      candidate = vec3(0.66, 0.38, 0.16);
       score = distance(color, candidate);
       if (score < best) { best = score; palette = candidate; }
 
-      candidate = vec3(0.57, 0.44, 0.31);
+      candidate = vec3(0.62, 0.50, 0.36);
       score = distance(color, candidate);
       if (score < best) { best = score; palette = candidate; }
 
-      candidate = vec3(0.9, 0.86, 0.74);
+      candidate = vec3(0.92, 0.88, 0.76);
       score = distance(color, candidate);
       if (score < best) { best = score; palette = candidate; }
 
-      candidate = vec3(0.06, 0.055, 0.045);
+      candidate = vec3(0.40, 0.48, 0.32);
+      score = distance(color, candidate);
+      if (score < best) { best = score; palette = candidate; }
+
+      candidate = vec3(0.12, 0.10, 0.08);
       score = distance(color, candidate);
       if (score < best) { palette = candidate; }
 
@@ -115,6 +121,7 @@ const IllustrationShader = {
       vec2 texel = 1.0 / resolution;
       vec4 source = texture2D(tDiffuse, vUv);
       vec3 color = source.rgb;
+      color = max(color, vec3(blackLift * 0.42, blackLift * 0.38, blackLift * 0.32));
 
       vec3 simplified = floor(color * levels + 0.5) / levels;
       vec3 poster = mix(color, simplified, colorSimplify);
@@ -129,7 +136,7 @@ const IllustrationShader = {
       float posterTone = posterLuminance(poster);
       poster = mix(
         poster,
-        max(poster, vec3(0.12, 0.105, 0.085)),
+        max(poster, vec3(blackLift * 0.9, blackLift * 0.82, blackLift * 0.68)),
         shadowLift * (1.0 - smoothstep(0.12, 0.58, posterTone))
       );
       float saturatedTone = posterLuminance(poster);
@@ -257,6 +264,9 @@ export class PostFX {
     }
     if ('shadowLift' in settings) {
       this.illustration.uniforms.shadowLift.value = Number(settings.shadowLift);
+    }
+    if ('blackLift' in settings) {
+      this.illustration.uniforms.blackLift.value = Number(settings.blackLift);
     }
     if ('saturation' in settings) {
       this.illustration.uniforms.saturation.value = Number(settings.saturation);
