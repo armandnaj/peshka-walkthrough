@@ -14,6 +14,11 @@ export const CONFIG = {
     defaultMetalness: 0.05,
     minRoughness: 0.38,
     maxRoughness: 0.9,
+    illustrated: {
+      enabled: false,
+      colorStrength: 0.18,
+      flatShading: true,
+    },
   },
   renderer: {
     exposure: 1.14,
@@ -27,6 +32,14 @@ export const CONFIG = {
     cameraNear: 0.15,
     cameraFar: 300,
     reflections: true,
+  },
+  reflections: {
+    enabled: false,
+    textureSize: 1024,
+    maxMirrors: 4,
+    minArea: 0.3,
+    clipBias: 0.006,
+    color: 0x9a8a78,
   },
   player: {
     height: 1.65,
@@ -128,6 +141,15 @@ export const CONFIG = {
       darkness: 0.72,
       offset: 1.05,
     },
+    illustration: {
+      enabled: false,
+      strength: 0.74,
+      levels: 5,
+      grain: 0.07,
+      edgeStrength: 0.42,
+      paperWarmth: 0.18,
+      inkColor: 0x1c1715,
+    },
   },
   visualPresets: {
     performance: {
@@ -143,6 +165,7 @@ export const CONFIG = {
       bloomThreshold: 0.86,
       bloomRadius: 0.3,
       vignette: 0.54,
+      illustration: 0,
       ssao: false,
       ssaoRadius: 8,
       ssaoMaxDistance: 0.07,
@@ -165,6 +188,7 @@ export const CONFIG = {
       bloomThreshold: 0.8,
       bloomRadius: 0.52,
       vignette: 0.68,
+      illustration: 0,
       ssao: true,
       ssaoRadius: 16,
       ssaoMaxDistance: 0.11,
@@ -187,6 +211,7 @@ export const CONFIG = {
       bloomThreshold: 0.72,
       bloomRadius: 0.68,
       vignette: 0.74,
+      illustration: 0,
       ssao: true,
       ssaoRadius: 24,
       ssaoMaxDistance: 0.14,

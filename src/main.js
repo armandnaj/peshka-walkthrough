@@ -16,6 +16,7 @@ import {
 } from './features/materials/MaterialProfiles.js';
 import { PlayerController } from './features/player/PlayerController.js';
 import { PostFX } from './features/postprocessing/PostFX.js';
+import { MirrorReflections } from './features/reflections/MirrorReflections.js';
 import { HUD } from './ui/HUD.js';
 
 const canvas = document.querySelector('#app');
@@ -23,6 +24,7 @@ const { renderer, mobile } = createRenderer(canvas, CONFIG.renderer);
 const { scene, camera, floor } = createScene(CONFIG.scene, CONFIG.player, renderer);
 const postFX = new PostFX(renderer, scene, camera, CONFIG.postFX, mobile);
 const lighting = new LightingRig(scene, renderer, CONFIG.lighting, postFX);
+const mirrorReflections = new MirrorReflections(scene, CONFIG.reflections, mobile);
 const door = new DoorInteraction(CONFIG.door);
 const hud = new HUD({ mobile });
 const player = new PlayerController({
@@ -37,6 +39,38 @@ let currentModel = null;
 let replacingModel = false;
 let renderQuality = 1;
 let activeVisualPreset = 'balanced';
+let illustrationStyle = false;
+
+const ILLUSTRATION_STYLE = {
+  label: 'Poster on',
+  status: 'Illustrated wine-bar poster style',
+  visual: {
+    exposure: 1.18,
+    ambient: 1.28,
+    sun: 0.34,
+    practical: 1.32,
+    fog: 0.78,
+    bloom: 0.18,
+    bloomThreshold: 0.8,
+    bloomRadius: 0.46,
+  },
+  postFX: {
+    strength: 0.82,
+    levels: 9,
+    grain: 0.018,
+    edgeStrength: 0.12,
+    paperWarmth: 0.32,
+    colorSimplify: 0.26,
+    toonStrength: 0.22,
+    shadowLift: 0.2,
+    saturation: 1.32,
+    inkColor: 0x18110f,
+  },
+  materials: {
+    colorStrength: 0.17,
+    flatShading: true,
+  },
+};
 
 function visualSettings() {
   return {
@@ -49,6 +83,17 @@ function visualSettings() {
 
 function syncVisualSettings() {
   hud.setVisualSettings(visualSettings());
+}
+
+function materialConfig() {
+  return {
+    ...CONFIG.materials,
+    illustrated: {
+      ...CONFIG.materials.illustrated,
+      ...ILLUSTRATION_STYLE.materials,
+      enabled: illustrationStyle,
+    },
+  };
 }
 
 function setRenderQuality(value) {
@@ -65,6 +110,56 @@ function setRenderQuality(value) {
 
 function setMaterialReflectionQuality(envMapIntensity) {
   tuneModelMaterialsForVisualPreset(currentModel, envMapIntensity);
+}
+
+function applyModelMaterials() {
+  if (!currentModel) return;
+  applyMaterialProfiles(currentModel, materialConfig());
+  setMaterialReflectionQuality(CONFIG.visualPresets[activeVisualPreset].envMapIntensity);
+}
+
+function setIllustrationStyle(enabled) {
+  illustrationStyle = Boolean(enabled);
+  document.body.classList.toggle('poster-mode', illustrationStyle);
+  hud.setStyleMode(illustrationStyle);
+
+  if (illustrationStyle) {
+    renderer.toneMappingExposure = ILLUSTRATION_STYLE.visual.exposure;
+    lighting.setAmbient(ILLUSTRATION_STYLE.visual.ambient);
+    lighting.setSun(ILLUSTRATION_STYLE.visual.sun);
+    lighting.setPractical(ILLUSTRATION_STYLE.visual.practical);
+    lighting.setFog(ILLUSTRATION_STYLE.visual.fog);
+    postFX.setBloomStrength(ILLUSTRATION_STYLE.visual.bloom);
+    postFX.setBloomThreshold(ILLUSTRATION_STYLE.visual.bloomThreshold);
+    postFX.setBloomRadius(ILLUSTRATION_STYLE.visual.bloomRadius);
+  } else {
+    const preset = CONFIG.visualPresets[activeVisualPreset];
+    renderer.toneMappingExposure = preset.exposure;
+    lighting.setAmbient(preset.ambient);
+    lighting.setSun(preset.sun);
+    lighting.setPractical(preset.practical);
+    lighting.setFog(preset.fog);
+    postFX.setBloomStrength(preset.bloom);
+    postFX.setBloomThreshold(preset.bloomThreshold);
+    postFX.setBloomRadius(preset.bloomRadius);
+  }
+
+  postFX.setIllustrationSettings(
+    illustrationStyle
+      ? ILLUSTRATION_STYLE.postFX
+      : {
+          strength: CONFIG.visualPresets[activeVisualPreset].illustration,
+          ...CONFIG.postFX.illustration,
+        },
+  );
+  postFX.setIllustrationStrength(
+    illustrationStyle
+      ? ILLUSTRATION_STYLE.postFX.strength
+      : CONFIG.visualPresets[activeVisualPreset].illustration,
+  );
+  applyModelMaterials();
+  syncVisualSettings();
+  hud.setStatus(illustrationStyle ? ILLUSTRATION_STYLE.status : CONFIG.visualPresets[activeVisualPreset].status);
 }
 
 function applyVisualPreset(name) {
@@ -86,13 +181,18 @@ function applyVisualPreset(name) {
   postFX.setBloomStrength(preset.bloom);
   postFX.setBloomThreshold(preset.bloomThreshold);
   postFX.setBloomRadius(preset.bloomRadius);
+  if (!illustrationStyle) postFX.setIllustrationStrength(preset.illustration);
   postFX.setSSAOEnabled(preset.ssao && (!mobile || CONFIG.postFX.ssao.mobileEnabled));
   postFX.setSSAORadius(preset.ssaoRadius);
   postFX.setSSAODistance(preset.ssaoMaxDistance);
   setRenderQuality(preset.quality);
   setMaterialReflectionQuality(preset.envMapIntensity);
   syncVisualSettings();
-  hud.setStatus(preset.status);
+  if (illustrationStyle) {
+    setIllustrationStyle(true);
+  } else {
+    hud.setStatus(preset.status);
+  }
 }
 
 function refreshPerformanceAudit() {
@@ -129,9 +229,9 @@ async function replaceModel(file) {
     const previousModel = currentModel;
     currentModel = result.model;
     prepareModelForRuntimeCulling(currentModel);
-    applyMaterialProfiles(currentModel, CONFIG.materials);
-    setMaterialReflectionQuality(CONFIG.visualPresets[activeVisualPreset].envMapIntensity);
+    applyModelMaterials();
     lighting.bindToModel(currentModel);
+    mirrorReflections.bindToModel(currentModel);
     door.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
     player.reset();
@@ -146,12 +246,16 @@ async function replaceModel(file) {
 }
 
 hud.setMode(lighting.getLabel());
+hud.setStyleMode(false);
 hud.bind({
   toggleMode: () => {
     lighting.togglePreset();
     hud.setMode(lighting.getLabel());
     hud.setStatus(`${lighting.getLabel()} lighting`);
     syncVisualSettings();
+  },
+  toggleIllustrationStyle: () => {
+    setIllustrationStyle(!illustrationStyle);
   },
   interact: () => door.interact(camera.position),
   fullscreen: async () => {
@@ -212,6 +316,7 @@ window.addEventListener('keydown', (event) => {
     hud.setMode(lighting.getLabel());
     syncVisualSettings();
   }
+  if (event.code === 'KeyP') setIllustrationStyle(!illustrationStyle);
   if (event.code === 'KeyF') door.interact(camera.position);
   if (event.code === 'KeyH') hud.setShareReady(!hud.shareReady);
 });
@@ -230,9 +335,9 @@ loadModel({
   .then(({ model, source }) => {
     currentModel = model;
     prepareModelForRuntimeCulling(currentModel);
-    applyMaterialProfiles(currentModel, CONFIG.materials);
-    setMaterialReflectionQuality(CONFIG.visualPresets[activeVisualPreset].envMapIntensity);
+    applyModelMaterials();
     lighting.bindToModel(currentModel);
+    mirrorReflections.bindToModel(currentModel);
     door.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
     const modelName = source === CONFIG.models.optimized ? 'optimized model' : 'original model';

@@ -18,6 +18,7 @@ export class HUD {
 
   bind(actions) {
     document.querySelector('#mode-button').addEventListener('click', actions.toggleMode);
+    document.querySelector('#style-button').addEventListener('click', actions.toggleIllustrationStyle);
     document.querySelector('#screenshot-button').addEventListener('click', actions.screenshot);
     document.querySelector('#fullscreen-button').addEventListener('click', actions.fullscreen);
     document.querySelector('#model-button').addEventListener('click', () => {
@@ -151,6 +152,13 @@ export class HUD {
 
   setMode(label) {
     document.querySelector('#mode-label').textContent = label;
+  }
+
+  setStyleMode(enabled) {
+    const button = document.querySelector('#style-button');
+    button.classList.toggle('is-active', enabled);
+    button.setAttribute('aria-pressed', String(enabled));
+    document.querySelector('#style-label').textContent = enabled ? 'Poster on' : 'Poster';
   }
 
   setVisualSettings(values) {

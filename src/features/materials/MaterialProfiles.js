@@ -25,6 +25,18 @@ const PROFILES = [
     },
   },
   {
+    type: 'polished-metal',
+    pattern: /metal049a_1k-jpg_color copy/i,
+    apply(material) {
+      if ('metalness' in material) material.metalness = 0.72;
+      if ('roughness' in material) material.roughness = 0.24;
+      material.transparent = false;
+      material.opacity = 1;
+      material.depthWrite = true;
+      material.side = THREE.FrontSide;
+    },
+  },
+  {
     type: 'glass',
     pattern: /(^mat_glass_)|glass|стекл/i,
     apply(material) {
@@ -86,6 +98,78 @@ const PROFILES = [
   },
 ];
 
+function rememberBaseMaterial(material) {
+  if (material.userData.baseMaterialState) return;
+
+  material.userData.baseMaterialState = {
+    color: material.color?.clone?.(),
+    emissive: material.emissive?.clone?.(),
+    emissiveIntensity: material.emissiveIntensity,
+    emissiveMap: material.emissiveMap,
+    metalness: material.metalness,
+    roughness: material.roughness,
+    transparent: material.transparent,
+    opacity: material.opacity,
+    depthWrite: material.depthWrite,
+    side: material.side,
+    flatShading: material.flatShading,
+    envMapIntensity: material.envMapIntensity,
+  };
+}
+
+function restoreBaseMaterial(material) {
+  const base = material.userData.baseMaterialState;
+  if (!base) return;
+
+  if (material.color && base.color) material.color.copy(base.color);
+  if (material.emissive && base.emissive) material.emissive.copy(base.emissive);
+  [
+    'emissiveIntensity',
+    'emissiveMap',
+    'metalness',
+    'roughness',
+    'transparent',
+    'opacity',
+    'depthWrite',
+    'side',
+    'flatShading',
+    'envMapIntensity',
+  ].forEach((key) => {
+    if (base[key] !== undefined && key in material) material[key] = base[key];
+  });
+}
+
+function applyIllustratedMaterial(material, config = {}) {
+  const illustrated = config.illustrated;
+  if (!illustrated?.enabled) return;
+
+  const profile = material.userData.materialProfile;
+  if (profile === 'mirror' || profile === 'glass' || profile === 'light' || profile === 'screen') {
+    return;
+  }
+
+  if ('roughness' in material) {
+    material.roughness = THREE.MathUtils.clamp(material.roughness + 0.12, 0.56, 0.96);
+  }
+  if ('metalness' in material) {
+    material.metalness = Math.min(material.metalness, profile === 'metal' ? 0.55 : 0.04);
+  }
+  if ('flatShading' in material) {
+    material.flatShading = Boolean(illustrated.flatShading);
+  }
+  if (material.color) {
+    const strength = illustrated.colorStrength ?? 0.16;
+    const color = material.color;
+    const luminance = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
+    const posterTone = luminance > 0.62
+      ? new THREE.Color(0xf1d89c)
+      : luminance > 0.34
+        ? new THREE.Color(0xb85a33)
+        : new THREE.Color(0x233047);
+    color.lerp(posterTone, strength * (profile === 'wood' ? 0.45 : 1));
+  }
+}
+
 export function applyMaterialProfiles(model, config = {}) {
   const materials = new Set();
   const counts = { default: 0 };
@@ -99,6 +183,9 @@ export function applyMaterialProfiles(model, config = {}) {
   });
 
   materials.forEach((material) => {
+    rememberBaseMaterial(material);
+    restoreBaseMaterial(material);
+
     const name = material.name || '';
     const profile = PROFILES.find((candidate) => candidate.pattern.test(name));
 
@@ -125,6 +212,7 @@ export function applyMaterialProfiles(model, config = {}) {
       counts.default += 1;
     }
 
+    applyIllustratedMaterial(material, config);
     tuneMaterialForVisualPreset(material, config.envMapIntensity ?? 0.72);
     material.needsUpdate = true;
   });
@@ -137,7 +225,7 @@ export function tuneMaterialForVisualPreset(material, envMapIntensity = 0.72) {
   if (!material || !('envMapIntensity' in material)) return;
 
   const profile = material.userData.materialProfile;
-  const multiplier = profile === 'mirror' ? 1.85 : profile === 'metal' ? 1.18 : 1;
+  const multiplier = profile === 'mirror' ? 1.85 : profile === 'polished-metal' ? 1.35 : profile === 'metal' ? 1.18 : 1;
   material.envMapIntensity = envMapIntensity * multiplier;
   material.needsUpdate = true;
 }
