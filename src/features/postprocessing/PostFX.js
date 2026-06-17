@@ -46,6 +46,7 @@ const IllustrationShader = {
     toonStrength: { value: 0.18 },
     shadowLift: { value: 0.12 },
     saturation: { value: 1 },
+    paletteStrength: { value: 0 },
     inkColor: { value: new THREE.Color(0x1c1715) },
   },
   vertexShader: `
@@ -67,6 +68,7 @@ const IllustrationShader = {
     uniform float toonStrength;
     uniform float shadowLift;
     uniform float saturation;
+    uniform float paletteStrength;
     uniform vec3 inkColor;
     varying vec2 vUv;
 
@@ -76,6 +78,37 @@ const IllustrationShader = {
 
     float hash(vec2 point) {
       return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    vec3 closestPosterColor(vec3 color) {
+      vec3 palette = vec3(0.055, 0.095, 0.18);
+      float best = distance(color, palette);
+
+      vec3 candidate = vec3(0.88, 0.80, 0.54);
+      float score = distance(color, candidate);
+      if (score < best) { best = score; palette = candidate; }
+
+      candidate = vec3(0.76, 0.32, 0.12);
+      score = distance(color, candidate);
+      if (score < best) { best = score; palette = candidate; }
+
+      candidate = vec3(0.63, 0.34, 0.13);
+      score = distance(color, candidate);
+      if (score < best) { best = score; palette = candidate; }
+
+      candidate = vec3(0.57, 0.44, 0.31);
+      score = distance(color, candidate);
+      if (score < best) { best = score; palette = candidate; }
+
+      candidate = vec3(0.9, 0.86, 0.74);
+      score = distance(color, candidate);
+      if (score < best) { best = score; palette = candidate; }
+
+      candidate = vec3(0.06, 0.055, 0.045);
+      score = distance(color, candidate);
+      if (score < best) { palette = candidate; }
+
+      return palette;
     }
 
     void main() {
@@ -101,6 +134,7 @@ const IllustrationShader = {
       );
       float saturatedTone = posterLuminance(poster);
       poster = mix(vec3(saturatedTone), poster, saturation);
+      poster = mix(poster, closestPosterColor(poster), paletteStrength);
 
       float center = posterLuminance(color);
       float right = posterLuminance(texture2D(tDiffuse, vUv + vec2(texel.x, 0.0)).rgb);
@@ -226,6 +260,9 @@ export class PostFX {
     }
     if ('saturation' in settings) {
       this.illustration.uniforms.saturation.value = Number(settings.saturation);
+    }
+    if ('paletteStrength' in settings) {
+      this.illustration.uniforms.paletteStrength.value = Number(settings.paletteStrength);
     }
     if ('inkColor' in settings) this.illustration.uniforms.inkColor.value.set(settings.inkColor);
     if ('strength' in settings) this.setIllustrationStrength(settings.strength);

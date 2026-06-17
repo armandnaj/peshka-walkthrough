@@ -161,12 +161,15 @@ function applyIllustratedMaterial(material, config = {}) {
     const strength = illustrated.colorStrength ?? 0.16;
     const color = material.color;
     const luminance = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
-    const posterTone = luminance > 0.62
-      ? new THREE.Color(0xf1d89c)
-      : luminance > 0.34
-        ? new THREE.Color(0xb85a33)
-        : new THREE.Color(0x233047);
-    color.lerp(posterTone, strength * (profile === 'wood' ? 0.45 : 1));
+    const redBias = color.r - Math.max(color.g, color.b);
+    const posterTone = luminance > 0.68
+      ? new THREE.Color(0xe8dcc0)
+      : luminance > 0.46
+        ? new THREE.Color(redBias > 0.08 ? 0xc66a24 : 0xd5c879)
+        : luminance > 0.22
+          ? new THREE.Color(redBias > 0.05 ? 0xa4541e : 0x8f7655)
+          : new THREE.Color(0x101b35);
+    color.lerp(posterTone, strength * (profile === 'wood' ? 0.75 : 1));
   }
 }
 
