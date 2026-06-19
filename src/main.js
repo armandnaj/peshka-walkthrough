@@ -28,6 +28,7 @@ const mirrorReflections = new MirrorReflections(scene, CONFIG.reflections, mobil
 const door = new DoorInteraction(CONFIG.door);
 const hud = new HUD({ mobile });
 const player = new PlayerController({
+  scene,
   camera,
   canvas,
   config: CONFIG.player,
@@ -39,39 +40,16 @@ let currentModel = null;
 let replacingModel = false;
 let renderQuality = 1;
 let activeVisualPreset = 'balanced';
-let illustrationStyle = false;
+let illustrationStyle = true;
+let grainAmount = CONFIG.visualPresets.balanced.grain;
+let modelColorBrightness = CONFIG.visualPresets.balanced.modelColorBrightness;
 
 const ILLUSTRATION_STYLE = {
-  label: 'Poster on',
-  status: 'Illustrated wine-bar poster style',
-  visual: {
-    exposure: 1.42,
-    ambient: 1.85,
-    sun: 0.55,
-    practical: 1.18,
-    fog: 0.42,
-    bloom: 0.08,
-    bloomThreshold: 0.88,
-    bloomRadius: 0.34,
-    vignette: 0.16,
-  },
+  label: 'Grain on',
+  status: 'Subtle film grain enabled',
   postFX: {
-    strength: 0.76,
-    levels: 10,
-    grain: 0.005,
-    edgeStrength: 0.05,
-    paperWarmth: 0.22,
-    colorSimplify: 0.24,
-    toonStrength: 0.12,
-    shadowLift: 0.34,
-    blackLift: 0.22,
-    saturation: 1.24,
-    paletteStrength: 0.24,
-    inkColor: 0x2a2017,
-  },
-  materials: {
-    colorStrength: 0.18,
-    flatShading: true,
+    strength: 1,
+    grain: grainAmount,
   },
 };
 
@@ -79,6 +57,7 @@ function visualSettings() {
   return {
     ...lighting.getSettings(),
     ...postFX.getSettings(),
+    modelColorBrightness,
     quality: renderQuality,
     visualPreset: activeVisualPreset,
   };
@@ -91,10 +70,10 @@ function syncVisualSettings() {
 function materialConfig() {
   return {
     ...CONFIG.materials,
+    colorBrightness: modelColorBrightness,
     illustrated: {
       ...CONFIG.materials.illustrated,
-      ...ILLUSTRATION_STYLE.materials,
-      enabled: illustrationStyle,
+      enabled: false,
     },
   };
 }
@@ -123,46 +102,10 @@ function applyModelMaterials() {
 
 function setIllustrationStyle(enabled) {
   illustrationStyle = Boolean(enabled);
-  document.body.classList.toggle('poster-mode', illustrationStyle);
+  document.body.classList.remove('poster-mode');
   hud.setStyleMode(illustrationStyle);
-
-  if (illustrationStyle) {
-    renderer.toneMappingExposure = ILLUSTRATION_STYLE.visual.exposure;
-    lighting.setAmbient(ILLUSTRATION_STYLE.visual.ambient);
-    lighting.setSun(ILLUSTRATION_STYLE.visual.sun);
-    lighting.setPractical(ILLUSTRATION_STYLE.visual.practical);
-    lighting.setFog(ILLUSTRATION_STYLE.visual.fog);
-    postFX.setBloomStrength(ILLUSTRATION_STYLE.visual.bloom);
-    postFX.setBloomThreshold(ILLUSTRATION_STYLE.visual.bloomThreshold);
-    postFX.setBloomRadius(ILLUSTRATION_STYLE.visual.bloomRadius);
-    postFX.setVignetteDarkness(ILLUSTRATION_STYLE.visual.vignette);
-  } else {
-    const preset = CONFIG.visualPresets[activeVisualPreset];
-    renderer.toneMappingExposure = preset.exposure;
-    lighting.setAmbient(preset.ambient);
-    lighting.setSun(preset.sun);
-    lighting.setPractical(preset.practical);
-    lighting.setFog(preset.fog);
-    postFX.setBloomStrength(preset.bloom);
-    postFX.setBloomThreshold(preset.bloomThreshold);
-    postFX.setBloomRadius(preset.bloomRadius);
-    postFX.setVignetteDarkness(preset.vignette);
-  }
-
-  postFX.setIllustrationSettings(
-    illustrationStyle
-      ? ILLUSTRATION_STYLE.postFX
-      : {
-          strength: CONFIG.visualPresets[activeVisualPreset].illustration,
-          ...CONFIG.postFX.illustration,
-        },
-  );
-  postFX.setIllustrationStrength(
-    illustrationStyle
-      ? ILLUSTRATION_STYLE.postFX.strength
-      : CONFIG.visualPresets[activeVisualPreset].illustration,
-  );
-  applyModelMaterials();
+  postFX.setIllustrationSettings({ grain: grainAmount });
+  postFX.setIllustrationStrength(illustrationStyle ? ILLUSTRATION_STYLE.postFX.strength : 0);
   syncVisualSettings();
   hud.setStatus(illustrationStyle ? ILLUSTRATION_STYLE.status : CONFIG.visualPresets[activeVisualPreset].status);
 }
@@ -186,12 +129,15 @@ function applyVisualPreset(name) {
   postFX.setBloomStrength(preset.bloom);
   postFX.setBloomThreshold(preset.bloomThreshold);
   postFX.setBloomRadius(preset.bloomRadius);
+  grainAmount = preset.grain ?? CONFIG.postFX.illustration.grain;
+  modelColorBrightness = preset.modelColorBrightness ?? CONFIG.materials.colorBrightness;
+  postFX.setGrain(grainAmount);
   if (!illustrationStyle) postFX.setIllustrationStrength(preset.illustration);
   postFX.setSSAOEnabled(preset.ssao && (!mobile || CONFIG.postFX.ssao.mobileEnabled));
   postFX.setSSAORadius(preset.ssaoRadius);
   postFX.setSSAODistance(preset.ssaoMaxDistance);
   setRenderQuality(preset.quality);
-  setMaterialReflectionQuality(preset.envMapIntensity);
+  applyModelMaterials();
   syncVisualSettings();
   if (illustrationStyle) {
     setIllustrationStyle(true);
@@ -251,7 +197,8 @@ async function replaceModel(file) {
 }
 
 hud.setMode(lighting.getLabel());
-hud.setStyleMode(false);
+hud.setStyleMode(illustrationStyle);
+hud.setCameraMode(player.getCameraMode());
 hud.bind({
   toggleMode: () => {
     lighting.togglePreset();
@@ -262,7 +209,12 @@ hud.bind({
   toggleIllustrationStyle: () => {
     setIllustrationStyle(!illustrationStyle);
   },
-  interact: () => door.interact(camera.position),
+  toggleCameraMode: () => {
+    const mode = player.toggleCameraMode();
+    hud.setCameraMode(mode);
+    hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
+  },
+  interact: () => door.interact(player.getInteractionPosition()),
   fullscreen: async () => {
     if (document.fullscreenElement) {
       await document.exitFullscreen();
@@ -298,6 +250,14 @@ hud.bind({
   },
   setBloomThreshold: (value) => postFX.setBloomThreshold(value),
   setVignette: (value) => postFX.setVignetteDarkness(value),
+  setGrain: (value) => {
+    grainAmount = Number(value);
+    postFX.setGrain(grainAmount);
+  },
+  setModelColorBrightness: (value) => {
+    modelColorBrightness = Number(value);
+    applyModelMaterials();
+  },
   setSSAO: (enabled) => {
     postFX.setSSAOEnabled(enabled);
   },
@@ -322,7 +282,12 @@ window.addEventListener('keydown', (event) => {
     syncVisualSettings();
   }
   if (event.code === 'KeyP') setIllustrationStyle(!illustrationStyle);
-  if (event.code === 'KeyF') door.interact(camera.position);
+  if (event.code === 'KeyV') {
+    const mode = player.toggleCameraMode();
+    hud.setCameraMode(mode);
+    hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
+  }
+  if (event.code === 'KeyF') door.interact(player.getInteractionPosition());
   if (event.code === 'KeyH') hud.setShareReady(!hud.shareReady);
 });
 
@@ -359,7 +324,7 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.033);
   player.update(delta);
   door.update();
-  hud.showInteraction(door.canInteract(camera.position), door.isOpen);
+  hud.showInteraction(door.canInteract(player.getInteractionPosition()), door.isOpen);
   postFX.render();
   requestAnimationFrame(animate);
 }

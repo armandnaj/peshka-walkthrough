@@ -33,9 +33,13 @@
         <span class="tool-icon">◐</span>
         <span id="mode-label">Evening</span>
       </button>
-      <button id="style-button" type="button" title="Toggle illustrated poster style (P)">
-        <span class="tool-icon">P</span>
-        <span id="style-label">Poster</span>
+      <button id="style-button" type="button" title="Toggle subtle film grain (P)">
+        <span class="tool-icon">G</span>
+        <span id="style-label">Grain</span>
+      </button>
+      <button id="camera-button" type="button" title="Toggle first/third person camera (V)">
+        <span class="tool-icon">☉</span>
+        <span id="camera-label">First</span>
       </button>
       <button id="screenshot-button" type="button" title="Save screenshot">
         <span class="tool-icon">□</span>
@@ -123,6 +127,16 @@
           <span>Vignette</span>
           <output for="vignette-control">0.72</output>
           <input id="vignette-control" type="range" min="0" max="1" step="0.01" value="0.72" />
+        </label>
+        <label class="slider-control">
+          <span>Film grain</span>
+          <output for="grain-control">0.006</output>
+          <input id="grain-control" type="range" min="0" max="0.06" step="0.001" value="0.006" />
+        </label>
+        <label class="slider-control">
+          <span>Model color brightness</span>
+          <output for="model-color-control">100%</output>
+          <input id="model-color-control" type="range" min="0.55" max="1.55" step="0.01" value="1" />
         </label>
         <label class="toggle">
           <span>Contact shading</span>
@@ -219,7 +233,7 @@
       </div>
     </div>
     <div id="crosshair" aria-hidden="true"></div>
-    <div id="desktop-hint">WASD walk/stairs · Drag/Arrows look · RMB zoom · E/Q eye height · F interact · L light</div>
+    <div id="desktop-hint">WASD walk/stairs · Space jump · Drag/Arrows look · RMB zoom · E/Q eye height · V camera · F interact · L light</div>
 
     <div id="mobile-controls" aria-label="Touch controls">
       <div id="joystick" aria-label="Walk control"><span id="joystick-knob"></span></div>

@@ -1,30 +1,48 @@
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
 export class PlayerController {
-  constructor({ camera, canvas, config, mobile, touchControls, fallbackFloor }) {
+  constructor({ camera, canvas, config, mobile, touchControls, fallbackFloor, scene }) {
     this.camera = camera;
     this.canvas = canvas;
     this.config = config;
     this.mobile = mobile;
+    this.scene = scene;
     this.keys = new Set();
     this.direction = new THREE.Vector3();
+    this.forward = new THREE.Vector3();
+    this.right = new THREE.Vector3();
+    this.lookTarget = new THREE.Vector3();
+    this.desiredCameraPosition = new THREE.Vector3();
+    this.cameraCollisionOrigin = new THREE.Vector3();
+    this.cameraCollisionDirection = new THREE.Vector3();
+    this.playerPosition = camera.position.clone();
     this.touchMove = new THREE.Vector2();
     this.targetHeight = config.height;
+    this.cameraMode = 'first';
+    this.yaw = camera.rotation.y;
+    this.pitch = camera.rotation.x;
     this.collisionMeshes = fallbackFloor ? [fallbackFloor] : [];
     this.fallbackFloor = fallbackFloor;
     this.raycaster = new THREE.Raycaster();
+    this.cameraRaycaster = new THREE.Raycaster();
     this.rayOrigin = new THREE.Vector3();
     this.down = new THREE.Vector3(0, -1, 0);
+    this.up = new THREE.Vector3(0, 1, 0);
     this.worldNormal = new THREE.Vector3();
     this.normalMatrix = new THREE.Matrix3();
     this.previousPosition = new THREE.Vector3();
     this.verticalVelocity = 0;
+    this.grounded = false;
+    this.jumpQueued = false;
+    this.avatarWalkTime = 0;
+    this.avatarMotion = 0;
+    this.avatarParts = {};
     this.groundProbeTimer = 0;
     this.cachedGroundY = null;
     this.defaultFov = camera.fov;
     this.zoomed = false;
-    this.controls = new PointerLockControls(camera, document.body);
+    this.avatar = this.createThirdPersonAvatar();
+    this.applyCameraTransform();
 
     this.onKeyDown = (event) => {
       const controlledKeys = [
@@ -34,8 +52,10 @@ export class PlayerController {
         'ArrowRight',
         'KeyE',
         'KeyQ',
+        'Space',
       ];
       if (controlledKeys.includes(event.code)) event.preventDefault();
+      if (event.code === 'Space' && !event.repeat) this.jumpQueued = true;
       this.keys.add(event.code);
     };
     this.onKeyUp = (event) => this.keys.delete(event.code);
@@ -57,6 +77,228 @@ export class PlayerController {
     model?.traverse((object) => {
       if (object.isMesh && object.geometry) this.collisionMeshes.push(object);
     });
+  }
+
+  createThirdPersonAvatar() {
+    if (!this.scene) return null;
+
+    const group = new THREE.Group();
+    group.name = 'TipsyMannequinPawn';
+
+    const skin = new THREE.MeshStandardMaterial({
+      color: 0xe3b177,
+      roughness: 0.68,
+      metalness: 0.02,
+      emissive: 0x3a1c08,
+      emissiveIntensity: 0.06,
+    });
+    const shirt = new THREE.MeshStandardMaterial({
+      color: 0x2d4f83,
+      roughness: 0.78,
+      metalness: 0,
+      emissive: 0x081121,
+      emissiveIntensity: 0.03,
+    });
+    const trousers = new THREE.MeshStandardMaterial({
+      color: 0x22170f,
+      roughness: 0.82,
+      metalness: 0,
+    });
+    const wine = new THREE.MeshStandardMaterial({
+      color: 0x7b2018,
+      roughness: 0.62,
+      metalness: 0.02,
+    });
+
+    const makeSegment = (radius, length, material) => {
+      const pivot = new THREE.Group();
+      const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length - radius * 2, 5, 10), material);
+      mesh.position.y = -length * 0.5;
+      mesh.castShadow = true;
+      pivot.add(mesh);
+      return pivot;
+    };
+
+    const root = new THREE.Group();
+    const spine = new THREE.Group();
+    spine.position.y = 0.58;
+
+    const hips = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.2), trousers);
+    hips.position.y = 0.53;
+    hips.castShadow = true;
+
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.21, 0.46, 7, 16), shirt);
+    torso.position.y = 0.36;
+    torso.scale.set(0.9, 1.0, 0.58);
+    torso.castShadow = true;
+
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.18), shirt);
+    chest.position.y = 0.56;
+    chest.castShadow = true;
+
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.12, 12), skin);
+    neck.position.y = 0.72;
+    neck.castShadow = true;
+
+    const headPivot = new THREE.Group();
+    headPivot.position.y = 1.34;
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 14), skin);
+    head.scale.set(0.88, 1.05, 0.84);
+    head.castShadow = true;
+
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), wine);
+    nose.position.set(0, 0, -0.145);
+    nose.scale.set(0.8, 0.75, 1.35);
+    nose.castShadow = true;
+    headPivot.add(head, nose);
+
+    const leftArm = new THREE.Group();
+    leftArm.position.set(-0.24, 1.09, 0);
+    const leftUpperArm = makeSegment(0.04, 0.34, skin);
+    const leftForearm = makeSegment(0.035, 0.31, skin);
+    leftForearm.position.y = -0.34;
+    const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skin);
+    leftHand.position.y = -0.66;
+    leftHand.castShadow = true;
+    leftArm.add(leftUpperArm, leftForearm, leftHand);
+
+    const rightArm = new THREE.Group();
+    rightArm.position.set(0.24, 1.09, 0);
+    const rightUpperArm = makeSegment(0.04, 0.34, skin);
+    const rightForearm = makeSegment(0.035, 0.31, skin);
+    rightForearm.position.y = -0.34;
+    const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skin);
+    rightHand.position.y = -0.66;
+    rightHand.castShadow = true;
+    rightArm.add(rightUpperArm, rightForearm, rightHand);
+
+    const leftLeg = new THREE.Group();
+    leftLeg.position.set(-0.1, 0.48, 0);
+    const leftThigh = makeSegment(0.055, 0.39, trousers);
+    const leftShin = makeSegment(0.045, 0.38, trousers);
+    leftShin.position.y = -0.39;
+    leftLeg.add(leftThigh, leftShin);
+
+    const rightLeg = new THREE.Group();
+    rightLeg.position.set(0.1, 0.48, 0);
+    const rightThigh = makeSegment(0.055, 0.39, trousers);
+    const rightShin = makeSegment(0.045, 0.38, trousers);
+    rightShin.position.y = -0.39;
+    rightLeg.add(rightThigh, rightShin);
+
+    const leftFoot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.25), trousers);
+    leftFoot.position.set(-0.1, 0.08, -0.085);
+    leftFoot.castShadow = true;
+
+    const rightFoot = leftFoot.clone();
+    rightFoot.position.x = 0.1;
+
+    spine.add(torso, chest, neck);
+    root.add(hips, spine, headPivot, leftArm, rightArm, leftLeg, rightLeg, leftFoot, rightFoot);
+    root.scale.setScalar(0.9);
+    group.add(root);
+    this.avatarParts = {
+      root,
+      spine,
+      hips,
+      torso,
+      chest,
+      neck,
+      headPivot,
+      head,
+      nose,
+      leftArm,
+      rightArm,
+      leftUpperArm,
+      rightUpperArm,
+      leftForearm,
+      rightForearm,
+      leftLeg,
+      rightLeg,
+      leftThigh,
+      rightThigh,
+      leftShin,
+      rightShin,
+      leftFoot,
+      rightFoot,
+    };
+
+    group.visible = false;
+    this.scene.add(group);
+    return group;
+  }
+
+  updateAvatar() {
+    if (!this.avatar) return;
+
+    this.avatar.visible = this.cameraMode === 'third';
+    this.avatar.position.set(
+      this.playerPosition.x,
+      this.playerPosition.y - this.targetHeight + Math.sin(this.avatarWalkTime * 2.0) * 0.015 * this.avatarMotion,
+      this.playerPosition.z,
+    );
+    const sway = Math.sin(this.avatarWalkTime * 1.35) * this.avatarMotion;
+    const stumble = Math.sin(this.avatarWalkTime * 0.58 + 1.7) * this.avatarMotion;
+    this.avatar.rotation.set(
+      stumble * 0.06,
+      this.yaw + sway * 0.08,
+      sway * 0.16,
+      'YXZ',
+    );
+
+    const stride = Math.sin(this.avatarWalkTime * 4.8) * this.avatarMotion;
+    const loose = Math.sin(this.avatarWalkTime * 3.1 + 0.6) * this.avatarMotion;
+    const parts = this.avatarParts;
+    if (parts.root) parts.root.position.y = Math.abs(stride) * 0.025;
+    if (parts.spine) parts.spine.rotation.z = -sway * 0.2;
+    if (parts.hips) parts.hips.rotation.z = sway * 0.14;
+    if (parts.headPivot) {
+      parts.headPivot.rotation.z = sway * 0.34;
+      parts.headPivot.rotation.x = loose * 0.11;
+    }
+    if (parts.leftArm) {
+      parts.leftArm.rotation.x = stride * 0.8 + loose * 0.2;
+      parts.leftArm.rotation.z = 0.22 - sway * 0.34;
+    }
+    if (parts.rightArm) {
+      parts.rightArm.rotation.x = -stride * 0.68 - loose * 0.35;
+      parts.rightArm.rotation.z = -0.22 - sway * 0.3;
+    }
+    if (parts.leftForearm) parts.leftForearm.rotation.x = Math.max(0.08, -stride * 0.22 + 0.18);
+    if (parts.rightForearm) parts.rightForearm.rotation.x = Math.max(0.08, stride * 0.22 + 0.18);
+    if (parts.leftLeg) parts.leftLeg.rotation.x = -stride * 0.5;
+    if (parts.rightLeg) parts.rightLeg.rotation.x = stride * 0.5;
+    if (parts.leftShin) parts.leftShin.rotation.x = Math.max(0, stride) * 0.46;
+    if (parts.rightShin) parts.rightShin.rotation.x = Math.max(0, -stride) * 0.46;
+    if (parts.leftFoot) {
+      parts.leftFoot.rotation.x = Math.max(0, stride) * 0.28;
+      parts.leftFoot.rotation.z = -sway * 0.12;
+    }
+    if (parts.rightFoot) {
+      parts.rightFoot.rotation.x = Math.max(0, -stride) * 0.28;
+      parts.rightFoot.rotation.z = -sway * 0.12;
+    }
+  }
+
+  setCameraMode(mode) {
+    this.cameraMode = mode === 'third' ? 'third' : 'first';
+    this.zoomed = false;
+    this.canvas.classList.toggle('is-third-person', this.cameraMode === 'third');
+    this.applyCameraTransform();
+    return this.cameraMode;
+  }
+
+  toggleCameraMode() {
+    return this.setCameraMode(this.cameraMode === 'third' ? 'first' : 'third');
+  }
+
+  getCameraMode() {
+    return this.cameraMode;
+  }
+
+  getInteractionPosition() {
+    return this.playerPosition;
   }
 
   findGround(position) {
@@ -85,16 +327,52 @@ export class PlayerController {
     return null;
   }
 
+  findCeiling(position) {
+    const collision = this.config.collision;
+    if (!collision.enabled || !this.collisionMeshes.length) return null;
+
+    this.rayOrigin.set(position.x, position.y + 0.02, position.z);
+    this.raycaster.set(this.rayOrigin, this.up);
+    this.raycaster.near = 0;
+    this.raycaster.far = collision.ceilingProbeDistance;
+
+    const intersections = this.raycaster.intersectObjects(this.collisionMeshes, false);
+    for (const hit of intersections) {
+      if (!hit.face || hit.object === this.fallbackFloor) continue;
+
+      this.normalMatrix.getNormalMatrix(hit.object.matrixWorld);
+      this.worldNormal.copy(hit.face.normal).applyMatrix3(this.normalMatrix).normalize();
+      if (this.worldNormal.y <= -collision.minCeilingNormalY) return hit.point.y;
+    }
+
+    return null;
+  }
+
+  resolveCeiling() {
+    const collision = this.config.collision;
+    if (!collision.enabled) return;
+
+    const ceilingY = this.findCeiling(this.playerPosition);
+    if (ceilingY === null) return;
+
+    const maxY = ceilingY - collision.headClearance;
+    if (this.playerPosition.y > maxY) {
+      this.playerPosition.y = maxY;
+      this.targetHeight = Math.min(this.targetHeight, Math.max(this.config.minHeight, maxY));
+      if (this.verticalVelocity > 0) this.verticalVelocity = 0;
+    }
+  }
+
   resolveGround(delta, movedHorizontally) {
     const collision = this.config.collision;
     if (!collision.enabled) {
-      this.camera.position.y += (this.targetHeight - this.camera.position.y) * 0.16;
+      this.playerPosition.y += (this.targetHeight - this.playerPosition.y) * 0.16;
       return;
     }
 
     this.groundProbeTimer -= delta;
     if (this.groundProbeTimer <= 0 || this.cachedGroundY === null) {
-      this.cachedGroundY = this.findGround(this.camera.position);
+      this.cachedGroundY = this.findGround(this.playerPosition);
       this.groundProbeTimer = collision.probeInterval;
     }
 
@@ -104,52 +382,115 @@ export class PlayerController {
     if (
       movedHorizontally &&
       desiredY !== null &&
-      desiredY - this.camera.position.y > collision.stepHeight
+      desiredY - this.playerPosition.y > collision.stepHeight
     ) {
-      this.camera.position.x = this.previousPosition.x;
-      this.camera.position.z = this.previousPosition.z;
-      groundY = this.findGround(this.camera.position);
+      this.playerPosition.x = this.previousPosition.x;
+      this.playerPosition.z = this.previousPosition.z;
+      groundY = this.findGround(this.playerPosition);
       this.cachedGroundY = groundY;
       desiredY = groundY === null ? null : groundY + this.targetHeight;
     }
 
     if (desiredY === null) {
       this.verticalVelocity -= collision.gravity * delta;
-      this.camera.position.y += this.verticalVelocity * delta;
+      this.playerPosition.y += this.verticalVelocity * delta;
+      this.grounded = false;
       return;
     }
 
-    if (this.camera.position.y <= desiredY) {
+    if (this.playerPosition.y <= desiredY) {
       const blend = 1 - Math.exp(-collision.groundSnapSpeed * delta);
-      this.camera.position.y = THREE.MathUtils.lerp(
-        this.camera.position.y,
+      this.playerPosition.y = THREE.MathUtils.lerp(
+        this.playerPosition.y,
         desiredY,
         blend,
       );
-      if (Math.abs(this.camera.position.y - desiredY) < 0.005) {
-        this.camera.position.y = desiredY;
+      if (Math.abs(this.playerPosition.y - desiredY) < 0.005) {
+        this.playerPosition.y = desiredY;
       }
       this.verticalVelocity = 0;
+      this.grounded = true;
       return;
     }
 
     this.verticalVelocity -= collision.gravity * delta;
-    this.camera.position.y = Math.max(
+    this.playerPosition.y = Math.max(
       desiredY,
-      this.camera.position.y + this.verticalVelocity * delta,
+      this.playerPosition.y + this.verticalVelocity * delta,
     );
-    if (this.camera.position.y === desiredY) this.verticalVelocity = 0;
+    if (this.playerPosition.y === desiredY) this.verticalVelocity = 0;
+    this.grounded = this.playerPosition.y === desiredY;
   }
 
   rotateCamera(deltaX, deltaY) {
-    this.camera.rotation.order = 'YXZ';
-    this.camera.rotation.y -= deltaX * this.config.lookSpeed;
-    this.camera.rotation.x -= deltaY * this.config.lookSpeed;
-    this.camera.rotation.x = THREE.MathUtils.clamp(
-      this.camera.rotation.x,
+    const horizontalSign = this.config.lookInvertX ? 1 : -1;
+    const verticalSign = this.config.lookInvertY ? 1 : -1;
+    this.yaw += deltaX * this.config.lookSpeed * horizontalSign;
+    this.pitch += deltaY * this.config.lookSpeed * verticalSign;
+    this.pitch = THREE.MathUtils.clamp(
+      this.pitch,
       -Math.PI / 2.05,
       Math.PI / 2.05,
     );
+    this.applyCameraTransform();
+  }
+
+  applyCameraTransform() {
+    this.camera.rotation.order = 'YXZ';
+    this.forward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+
+    if (this.cameraMode === 'third') {
+      const third = this.config.thirdPerson ?? {};
+      const distance = third.distance ?? 3.2;
+      const height = third.height ?? 0.62;
+      const targetHeight = third.targetOffset ?? -0.12;
+      const minDistance = third.minDistance ?? 0.78;
+      const collisionOffset = third.collisionOffset ?? 0.12;
+      const nearClipPadding = third.nearClipPadding ?? 0.18;
+      const orbitPitch = THREE.MathUtils.clamp(this.pitch, -0.65, 0.72);
+      const horizontalDistance = Math.max(1.15, Math.cos(orbitPitch) * distance);
+      const verticalOffset = height + Math.sin(orbitPitch) * distance;
+
+      this.lookTarget.copy(this.playerPosition);
+      this.lookTarget.y += targetHeight;
+      this.desiredCameraPosition.copy(this.playerPosition);
+      this.desiredCameraPosition.addScaledVector(this.forward, -horizontalDistance);
+      this.desiredCameraPosition.y += verticalOffset;
+
+      this.cameraCollisionOrigin.copy(this.lookTarget);
+      this.cameraCollisionDirection
+        .copy(this.desiredCameraPosition)
+        .sub(this.cameraCollisionOrigin);
+
+      const desiredDistance = this.cameraCollisionDirection.length();
+      this.camera.position.copy(this.desiredCameraPosition);
+      if (desiredDistance > minDistance && this.collisionMeshes.length) {
+        this.cameraCollisionDirection.normalize();
+        this.cameraRaycaster.set(this.cameraCollisionOrigin, this.cameraCollisionDirection);
+        this.cameraRaycaster.near = nearClipPadding;
+        this.cameraRaycaster.far = desiredDistance;
+
+        const hits = this.cameraRaycaster.intersectObjects(this.collisionMeshes, false);
+        const hit = hits.find((intersection) => (
+          intersection.object !== this.fallbackFloor &&
+          intersection.distance > minDistance
+        ));
+
+        if (hit) {
+          const safeDistance = Math.max(minDistance, hit.distance - collisionOffset);
+          this.camera.position
+            .copy(this.cameraCollisionOrigin)
+            .addScaledVector(this.cameraCollisionDirection, safeDistance);
+        }
+      }
+
+      this.camera.lookAt(this.lookTarget);
+    } else {
+      this.camera.position.copy(this.playerPosition);
+      this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    }
+
+    this.updateAvatar();
   }
 
   setupDesktopLook() {
@@ -255,7 +596,12 @@ export class PlayerController {
   }
 
   update(delta) {
-    const targetFov = this.zoomed ? this.config.zoomFov : this.defaultFov;
+    const thirdPersonFov = this.config.thirdPerson?.fov ?? this.defaultFov;
+    const targetFov = this.zoomed
+      ? this.config.zoomFov
+      : this.cameraMode === 'third'
+        ? thirdPersonFov
+        : this.defaultFov;
     const fovBlend = 1 - Math.exp(-this.config.zoomSpeed * delta);
     const nextFov = THREE.MathUtils.lerp(this.camera.fov, targetFov, fovBlend);
     if (Math.abs(nextFov - this.camera.fov) > 0.001) {
@@ -278,22 +624,33 @@ export class PlayerController {
     }
 
     if (this.direction.lengthSq() > 1) this.direction.normalize();
+    const movementIntent = this.direction.length();
+    this.avatarMotion = THREE.MathUtils.lerp(
+      this.avatarMotion,
+      movementIntent > 0.03 ? 1 : 0.18,
+      1 - Math.exp(-8 * delta),
+    );
+    this.avatarWalkTime += delta * (movementIntent > 0.03 ? (running ? 1.55 : 1) : 0.28);
 
-    this.previousPosition.copy(this.camera.position);
-    this.controls.moveRight(this.direction.x * speed * delta);
-    this.controls.moveForward(-this.direction.z * speed * delta);
+    this.previousPosition.copy(this.playerPosition);
+    this.forward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    this.right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    this.playerPosition.addScaledVector(this.right, this.direction.x * speed * delta);
+    this.playerPosition.addScaledVector(this.forward, -this.direction.z * speed * delta);
     const movedHorizontally =
-      this.previousPosition.x !== this.camera.position.x ||
-      this.previousPosition.z !== this.camera.position.z;
+      this.previousPosition.x !== this.playerPosition.x ||
+      this.previousPosition.z !== this.playerPosition.z;
 
     if (!this.mobile) {
       const keyboardLook = this.config.keyboardLookSpeed * delta;
-      if (this.keys.has('ArrowLeft')) this.camera.rotation.y += keyboardLook;
-      if (this.keys.has('ArrowRight')) this.camera.rotation.y -= keyboardLook;
-      if (this.keys.has('ArrowUp')) this.camera.rotation.x += keyboardLook;
-      if (this.keys.has('ArrowDown')) this.camera.rotation.x -= keyboardLook;
-      this.camera.rotation.x = THREE.MathUtils.clamp(
-        this.camera.rotation.x,
+      const keyboardHorizontal = this.config.lookInvertX ? -keyboardLook : keyboardLook;
+      const keyboardVertical = this.config.lookInvertY ? -keyboardLook : keyboardLook;
+      if (this.keys.has('ArrowLeft')) this.yaw += keyboardHorizontal;
+      if (this.keys.has('ArrowRight')) this.yaw -= keyboardHorizontal;
+      if (this.keys.has('ArrowUp')) this.pitch += keyboardVertical;
+      if (this.keys.has('ArrowDown')) this.pitch -= keyboardVertical;
+      this.pitch = THREE.MathUtils.clamp(
+        this.pitch,
         -Math.PI / 2.05,
         Math.PI / 2.05,
       );
@@ -307,15 +664,29 @@ export class PlayerController {
       );
     }
 
+    if (this.jumpQueued && this.grounded) {
+      this.verticalVelocity = this.config.jumpSpeed;
+      this.grounded = false;
+      this.cachedGroundY = null;
+      this.playerPosition.y += 0.02;
+    }
+    this.jumpQueued = false;
+
     this.resolveGround(delta, movedHorizontally);
+    this.resolveCeiling();
+    this.applyCameraTransform();
   }
 
   reset() {
     this.targetHeight = this.config.height;
     this.verticalVelocity = 0;
+    this.grounded = false;
+    this.jumpQueued = false;
     this.groundProbeTimer = 0;
     this.cachedGroundY = null;
-    this.camera.position.copy(this.config.startPosition);
-    this.camera.rotation.set(0, 0, 0);
+    this.playerPosition.copy(this.config.startPosition);
+    this.yaw = 0;
+    this.pitch = 0;
+    this.applyCameraTransform();
   }
 }

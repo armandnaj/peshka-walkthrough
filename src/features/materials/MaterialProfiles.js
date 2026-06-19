@@ -173,6 +173,18 @@ function applyIllustratedMaterial(material, config = {}) {
   }
 }
 
+function applyColorBrightness(material, brightness = 1) {
+  if (!material.color || brightness === 1) return;
+  const profile = material.userData.materialProfile;
+  if (profile === 'mirror' || profile === 'glass' || profile === 'light' || profile === 'screen') return;
+
+  const hsl = {};
+  material.color.getHSL(hsl);
+  hsl.l = THREE.MathUtils.clamp(hsl.l * brightness, 0, 1);
+  hsl.s = THREE.MathUtils.clamp(hsl.s * (0.85 + brightness * 0.15), 0, 1);
+  material.color.setHSL(hsl.h, hsl.s, hsl.l);
+}
+
 export function applyMaterialProfiles(model, config = {}) {
   const materials = new Set();
   const counts = { default: 0 };
@@ -216,6 +228,7 @@ export function applyMaterialProfiles(model, config = {}) {
     }
 
     applyIllustratedMaterial(material, config);
+    applyColorBrightness(material, config.colorBrightness ?? 1);
     tuneMaterialForVisualPreset(material, config.envMapIntensity ?? 0.72);
     material.needsUpdate = true;
   });

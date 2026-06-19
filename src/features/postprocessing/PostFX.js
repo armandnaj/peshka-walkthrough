@@ -37,18 +37,8 @@ const IllustrationShader = {
   uniforms: {
     tDiffuse: { value: null },
     resolution: { value: new THREE.Vector2(1, 1) },
-    strength: { value: 0.7 },
-    levels: { value: 5 },
-    grain: { value: 0.06 },
-    edgeStrength: { value: 0.35 },
-    paperWarmth: { value: 0.15 },
-    colorSimplify: { value: 0.12 },
-    toonStrength: { value: 0.18 },
-    shadowLift: { value: 0.12 },
-    blackLift: { value: 0.16 },
-    saturation: { value: 1 },
-    paletteStrength: { value: 0 },
-    inkColor: { value: new THREE.Color(0x1c1715) },
+    strength: { value: 1 },
+    grain: { value: 0.006 },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -61,103 +51,18 @@ const IllustrationShader = {
     uniform sampler2D tDiffuse;
     uniform vec2 resolution;
     uniform float strength;
-    uniform float levels;
     uniform float grain;
-    uniform float edgeStrength;
-    uniform float paperWarmth;
-    uniform float colorSimplify;
-    uniform float toonStrength;
-    uniform float shadowLift;
-    uniform float blackLift;
-    uniform float saturation;
-    uniform float paletteStrength;
-    uniform vec3 inkColor;
     varying vec2 vUv;
-
-    float posterLuminance(vec3 color) {
-      return dot(color, vec3(0.299, 0.587, 0.114));
-    }
 
     float hash(vec2 point) {
       return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453123);
     }
 
-    vec3 closestPosterColor(vec3 color) {
-      vec3 palette = vec3(0.08, 0.13, 0.28);
-      float best = distance(color, palette);
-
-      vec3 candidate = vec3(0.93, 0.84, 0.58);
-      float score = distance(color, candidate);
-      if (score < best) { best = score; palette = candidate; }
-
-      candidate = vec3(0.78, 0.36, 0.14);
-      score = distance(color, candidate);
-      if (score < best) { best = score; palette = candidate; }
-
-      candidate = vec3(0.66, 0.38, 0.16);
-      score = distance(color, candidate);
-      if (score < best) { best = score; palette = candidate; }
-
-      candidate = vec3(0.62, 0.50, 0.36);
-      score = distance(color, candidate);
-      if (score < best) { best = score; palette = candidate; }
-
-      candidate = vec3(0.92, 0.88, 0.76);
-      score = distance(color, candidate);
-      if (score < best) { best = score; palette = candidate; }
-
-      candidate = vec3(0.40, 0.48, 0.32);
-      score = distance(color, candidate);
-      if (score < best) { best = score; palette = candidate; }
-
-      candidate = vec3(0.12, 0.10, 0.08);
-      score = distance(color, candidate);
-      if (score < best) { palette = candidate; }
-
-      return palette;
-    }
-
     void main() {
-      vec2 texel = 1.0 / resolution;
       vec4 source = texture2D(tDiffuse, vUv);
-      vec3 color = source.rgb;
-      color = max(color, vec3(blackLift * 0.42, blackLift * 0.38, blackLift * 0.32));
-
-      vec3 simplified = floor(color * levels + 0.5) / levels;
-      vec3 poster = mix(color, simplified, colorSimplify);
-
-      float sourceTone = posterLuminance(poster);
-      float toonTone = floor(sourceTone * 4.0 + 0.5) / 4.0;
-      float safeTone = max(sourceTone, 0.025);
-      poster *= mix(1.0, toonTone / safeTone, toonStrength);
-      poster = clamp(poster, 0.0, 1.0);
-
-      poster = mix(poster, poster * vec3(1.045, 1.0, 0.91), paperWarmth);
-      float posterTone = posterLuminance(poster);
-      poster = mix(
-        poster,
-        max(poster, vec3(blackLift * 0.9, blackLift * 0.82, blackLift * 0.68)),
-        shadowLift * (1.0 - smoothstep(0.12, 0.58, posterTone))
-      );
-      float saturatedTone = posterLuminance(poster);
-      poster = mix(vec3(saturatedTone), poster, saturation);
-      poster = mix(poster, closestPosterColor(poster), paletteStrength);
-
-      float center = posterLuminance(color);
-      float right = posterLuminance(texture2D(tDiffuse, vUv + vec2(texel.x, 0.0)).rgb);
-      float left = posterLuminance(texture2D(tDiffuse, vUv - vec2(texel.x, 0.0)).rgb);
-      float top = posterLuminance(texture2D(tDiffuse, vUv + vec2(0.0, texel.y)).rgb);
-      float bottom = posterLuminance(texture2D(tDiffuse, vUv - vec2(0.0, texel.y)).rgb);
-      float edge = abs(center - right) + abs(center - left) + abs(center - top) + abs(center - bottom);
-      edge = smoothstep(0.08, 0.22, edge) * edgeStrength;
-
-      float paper = hash(floor(vUv * resolution * 0.55));
-      float fine = hash(vUv * resolution + paper);
-      poster += (paper - 0.5) * grain;
-      poster += (fine - 0.5) * grain * 0.35;
-
-      vec3 illustrated = mix(poster, inkColor, edge);
-      gl_FragColor = vec4(mix(color, illustrated, strength), source.a);
+      float noise = hash(floor(vUv * resolution));
+      vec3 grained = clamp(source.rgb + (noise - 0.5) * grain, 0.0, 1.0);
+      gl_FragColor = vec4(mix(source.rgb, grained, strength), source.a);
     }
   `,
 };
@@ -187,12 +92,8 @@ export class PostFX {
     this.illustration = new ShaderPass(IllustrationShader);
     this.illustration.enabled = config.illustration?.enabled ?? false;
     this.illustration.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
-    this.illustration.uniforms.strength.value = config.illustration?.strength ?? 0.7;
-    this.illustration.uniforms.levels.value = config.illustration?.levels ?? 5;
-    this.illustration.uniforms.grain.value = config.illustration?.grain ?? 0.06;
-    this.illustration.uniforms.edgeStrength.value = config.illustration?.edgeStrength ?? 0.35;
-    this.illustration.uniforms.paperWarmth.value = config.illustration?.paperWarmth ?? 0.15;
-    this.illustration.uniforms.inkColor.value.set(config.illustration?.inkColor ?? 0x1c1715);
+    this.illustration.uniforms.strength.value = config.illustration?.strength ?? 1;
+    this.illustration.uniforms.grain.value = config.illustration?.grain ?? 0.006;
     this.composer.addPass(this.illustration);
 
     this.vignette = new ShaderPass(VignetteShader);
@@ -247,34 +148,12 @@ export class PostFX {
     this.illustration.enabled = Number(value) > 0;
   }
 
+  setGrain(value) {
+    this.illustration.uniforms.grain.value = Number(value);
+  }
+
   setIllustrationSettings(settings = {}) {
-    if ('levels' in settings) this.illustration.uniforms.levels.value = Number(settings.levels);
-    if ('grain' in settings) this.illustration.uniforms.grain.value = Number(settings.grain);
-    if ('edgeStrength' in settings) {
-      this.illustration.uniforms.edgeStrength.value = Number(settings.edgeStrength);
-    }
-    if ('paperWarmth' in settings) {
-      this.illustration.uniforms.paperWarmth.value = Number(settings.paperWarmth);
-    }
-    if ('colorSimplify' in settings) {
-      this.illustration.uniforms.colorSimplify.value = Number(settings.colorSimplify);
-    }
-    if ('toonStrength' in settings) {
-      this.illustration.uniforms.toonStrength.value = Number(settings.toonStrength);
-    }
-    if ('shadowLift' in settings) {
-      this.illustration.uniforms.shadowLift.value = Number(settings.shadowLift);
-    }
-    if ('blackLift' in settings) {
-      this.illustration.uniforms.blackLift.value = Number(settings.blackLift);
-    }
-    if ('saturation' in settings) {
-      this.illustration.uniforms.saturation.value = Number(settings.saturation);
-    }
-    if ('paletteStrength' in settings) {
-      this.illustration.uniforms.paletteStrength.value = Number(settings.paletteStrength);
-    }
-    if ('inkColor' in settings) this.illustration.uniforms.inkColor.value.set(settings.inkColor);
+    if ('grain' in settings) this.setGrain(settings.grain);
     if ('strength' in settings) this.setIllustrationStrength(settings.strength);
   }
 
@@ -295,6 +174,7 @@ export class PostFX {
       ssaoMaxDistance: this.ssao.maxDistance,
       vignette: this.vignette.uniforms.darkness.value,
       illustration: this.illustration.uniforms.strength.value,
+      grain: this.illustration.uniforms.grain.value,
     };
   }
 }

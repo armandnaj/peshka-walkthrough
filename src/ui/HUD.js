@@ -19,6 +19,7 @@ export class HUD {
   bind(actions) {
     document.querySelector('#mode-button').addEventListener('click', actions.toggleMode);
     document.querySelector('#style-button').addEventListener('click', actions.toggleIllustrationStyle);
+    document.querySelector('#camera-button').addEventListener('click', actions.toggleCameraMode);
     document.querySelector('#screenshot-button').addEventListener('click', actions.screenshot);
     document.querySelector('#fullscreen-button').addEventListener('click', actions.fullscreen);
     document.querySelector('#model-button').addEventListener('click', () => {
@@ -72,6 +73,12 @@ export class HUD {
       'vignette-control',
       actions.setVignette,
       (value) => Number(value).toFixed(2),
+    );
+    this.bindRange('grain-control', actions.setGrain, (value) => Number(value).toFixed(3));
+    this.bindRange(
+      'model-color-control',
+      actions.setModelColorBrightness,
+      (value) => `${Math.round(value * 100)}%`,
     );
     this.bindRange('ssao-radius-control', actions.setSSAORadius, (value) => Math.round(value));
     document.querySelector('#ssao-control').addEventListener('change', (event) => {
@@ -158,7 +165,15 @@ export class HUD {
     const button = document.querySelector('#style-button');
     button.classList.toggle('is-active', enabled);
     button.setAttribute('aria-pressed', String(enabled));
-    document.querySelector('#style-label').textContent = enabled ? 'Poster on' : 'Poster';
+    document.querySelector('#style-label').textContent = enabled ? 'Grain on' : 'Grain';
+  }
+
+  setCameraMode(mode) {
+    const thirdPerson = mode === 'third';
+    const button = document.querySelector('#camera-button');
+    button.classList.toggle('is-active', thirdPerson);
+    button.setAttribute('aria-pressed', String(thirdPerson));
+    document.querySelector('#camera-label').textContent = thirdPerson ? 'Third' : 'First';
   }
 
   setVisualSettings(values) {
@@ -172,6 +187,8 @@ export class HUD {
       'bloom-control': [values.bloom, (value) => value.toFixed(2)],
       'bloom-threshold-control': [values.bloomThreshold, (value) => value.toFixed(2)],
       'vignette-control': [values.vignette, (value) => value.toFixed(2)],
+      'grain-control': [values.grain, (value) => value.toFixed(3)],
+      'model-color-control': [values.modelColorBrightness, (value) => `${Math.round(value * 100)}%`],
       'ssao-radius-control': [values.ssaoRadius, (value) => Math.round(value)],
     };
 
