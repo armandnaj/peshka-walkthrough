@@ -4,19 +4,10 @@ import { CONFIG } from './config.js';
 import { createRenderer } from './core/createRenderer.js';
 import { createScene } from './core/createScene.js';
 import { disposeModel, loadModel, loadModelFile } from './core/loadModel.js';
-import { DoorInteraction } from './features/interactions/DoorInteraction.js';
-import {
-  createPerformanceAudit,
-  prepareModelForRuntimeCulling,
-} from './features/diagnostics/PerformanceAudit.js';
 import { LightingRig } from './features/lighting/LightingRig.js';
-import {
-  applyMaterialProfiles,
-  tuneModelMaterialsForVisualPreset,
-} from './features/materials/MaterialProfiles.js';
+import { applyMaterialProfiles, tuneModelMaterialsForVisualPreset } from './features/materials/MaterialProfiles.js';
 import { PlayerController } from './features/player/PlayerController.js';
 import { PostFX } from './features/postprocessing/PostFX.js';
-import { MirrorReflections } from './features/reflections/MirrorReflections.js';
 import { HUD } from './ui/HUD.js';
 
 const canvas = document.querySelector('#app');
@@ -24,8 +15,6 @@ const { renderer, mobile } = createRenderer(canvas, CONFIG.renderer);
 const { scene, camera, floor } = createScene(CONFIG.scene, CONFIG.player, renderer);
 const postFX = new PostFX(renderer, scene, camera, CONFIG.postFX, mobile);
 const lighting = new LightingRig(scene, renderer, CONFIG.lighting, postFX);
-const mirrorReflections = new MirrorReflections(scene, CONFIG.reflections, mobile);
-const door = new DoorInteraction(CONFIG.door);
 const hud = new HUD({ mobile });
 const player = new PlayerController({
   scene,
@@ -36,22 +25,11 @@ const player = new PlayerController({
   touchControls: hud.getTouchControls(),
   fallbackFloor: floor,
 });
+
 let currentModel = null;
 let replacingModel = false;
 let renderQuality = 1;
-let activeVisualPreset = 'balanced';
-let illustrationStyle = true;
-let grainAmount = CONFIG.visualPresets.balanced.grain;
 let modelColorBrightness = CONFIG.visualPresets.balanced.modelColorBrightness;
-
-const ILLUSTRATION_STYLE = {
-  label: 'Grain on',
-  status: 'Subtle film grain enabled',
-  postFX: {
-    strength: 1,
-    grain: grainAmount,
-  },
-};
 
 function visualSettings() {
   return {
@@ -59,7 +37,6 @@ function visualSettings() {
     ...postFX.getSettings(),
     modelColorBrightness,
     quality: renderQuality,
-    visualPreset: activeVisualPreset,
   };
 }
 
@@ -67,54 +44,29 @@ function syncVisualSettings() {
   hud.setVisualSettings(visualSettings());
 }
 
-function materialConfig() {
-  return {
-    ...CONFIG.materials,
-    colorBrightness: modelColorBrightness,
-    illustrated: {
-      ...CONFIG.materials.illustrated,
-      enabled: false,
-    },
-  };
-}
-
 function setRenderQuality(value) {
   renderQuality = Number(value);
   const basePixelRatio = mobile
     ? CONFIG.renderer.mobilePixelRatio
     : CONFIG.renderer.desktopPixelRatio;
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, basePixelRatio * renderQuality),
-  );
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, basePixelRatio * renderQuality));
   renderer.setSize(window.innerWidth, window.innerHeight);
   postFX.resize(window.innerWidth, window.innerHeight);
 }
 
-function setMaterialReflectionQuality(envMapIntensity) {
-  tuneModelMaterialsForVisualPreset(currentModel, envMapIntensity);
-}
-
 function applyModelMaterials() {
   if (!currentModel) return;
-  applyMaterialProfiles(currentModel, materialConfig());
-  setMaterialReflectionQuality(CONFIG.visualPresets[activeVisualPreset].envMapIntensity);
+  const preset = CONFIG.visualPresets.balanced;
+  applyMaterialProfiles(currentModel, {
+    ...CONFIG.materials,
+    colorBrightness: modelColorBrightness,
+    illustrated: { enabled: false },
+  });
+  tuneModelMaterialsForVisualPreset(currentModel, preset.envMapIntensity);
 }
 
-function setIllustrationStyle(enabled) {
-  illustrationStyle = Boolean(enabled);
-  document.body.classList.remove('poster-mode');
-  hud.setStyleMode(illustrationStyle);
-  postFX.setIllustrationSettings({ grain: grainAmount });
-  postFX.setIllustrationStrength(illustrationStyle ? ILLUSTRATION_STYLE.postFX.strength : 0);
-  syncVisualSettings();
-  hud.setStatus(illustrationStyle ? ILLUSTRATION_STYLE.status : CONFIG.visualPresets[activeVisualPreset].status);
-}
-
-function applyVisualPreset(name) {
-  const preset = CONFIG.visualPresets[name];
-  if (!preset) return;
-
-  activeVisualPreset = name;
+function applyFrenchBarPreset() {
+  const preset = CONFIG.visualPresets.balanced;
   renderer.toneMappingExposure = preset.exposure;
   lighting.setAmbient(preset.ambient);
   lighting.setSun(preset.sun);
@@ -129,45 +81,24 @@ function applyVisualPreset(name) {
   postFX.setBloomStrength(preset.bloom);
   postFX.setBloomThreshold(preset.bloomThreshold);
   postFX.setBloomRadius(preset.bloomRadius);
-  grainAmount = preset.grain ?? CONFIG.postFX.illustration.grain;
-  modelColorBrightness = preset.modelColorBrightness ?? CONFIG.materials.colorBrightness;
-  postFX.setGrain(grainAmount);
-  if (!illustrationStyle) postFX.setIllustrationStrength(preset.illustration);
   postFX.setSSAOEnabled(preset.ssao && (!mobile || CONFIG.postFX.ssao.mobileEnabled));
   postFX.setSSAORadius(preset.ssaoRadius);
   postFX.setSSAODistance(preset.ssaoMaxDistance);
+  modelColorBrightness = preset.modelColorBrightness;
   setRenderQuality(preset.quality);
   applyModelMaterials();
   syncVisualSettings();
-  if (illustrationStyle) {
-    setIllustrationStyle(true);
-  } else {
-    hud.setStatus(preset.status);
-  }
-}
-
-function refreshPerformanceAudit() {
-  if (!currentModel) {
-    hud.setStatus('Load a model before running performance audit');
-    return;
-  }
-
-  postFX.render();
-  hud.setPerformanceAudit(createPerformanceAudit({ model: currentModel, renderer }));
-  hud.setStatus('Performance audit refreshed');
 }
 
 function readyMessage(modelName) {
   return mobile
     ? `${modelName} ready · left control walks · drag right side to look`
-    : `${modelName} ready · drag to look · WASD to walk`;
+    : `${modelName} ready · drag to look · WASD to walk · V changes camera`;
 }
 
 async function replaceModel(file) {
   if (replacingModel) return;
-
   replacingModel = true;
-  document.exitPointerLock?.();
   hud.setLoading(0, `Opening ${file.name}`);
 
   try {
@@ -179,11 +110,8 @@ async function replaceModel(file) {
     });
     const previousModel = currentModel;
     currentModel = result.model;
-    prepareModelForRuntimeCulling(currentModel);
     applyModelMaterials();
     lighting.bindToModel(currentModel);
-    mirrorReflections.bindToModel(currentModel);
-    door.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
     player.reset();
     disposeModel(previousModel);
@@ -196,110 +124,47 @@ async function replaceModel(file) {
   }
 }
 
-hud.setMode(lighting.getLabel());
-hud.setStyleMode(illustrationStyle);
+function toggleCameraMode() {
+  const mode = player.toggleCameraMode();
+  hud.setCameraMode(mode);
+  hud.setLookInversion(player.getLookInversion());
+  hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
+}
+
 hud.setCameraMode(player.getCameraMode());
 hud.setLookInversion(player.getLookInversion());
 hud.bind({
-  toggleMode: () => {
-    lighting.togglePreset();
-    hud.setMode(lighting.getLabel());
-    hud.setStatus(`${lighting.getLabel()} lighting`);
-    syncVisualSettings();
-  },
-  toggleIllustrationStyle: () => {
-    setIllustrationStyle(!illustrationStyle);
-  },
-  toggleCameraMode: () => {
-    const mode = player.toggleCameraMode();
-    hud.setCameraMode(mode);
-    hud.setLookInversion(player.getLookInversion());
-    hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
-  },
-  interact: () => door.interact(player.getInteractionPosition()),
+  toggleCameraMode,
+  replaceModel,
   fullscreen: async () => {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-    } else {
-      await document.documentElement.requestFullscreen();
-    }
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
   },
-  screenshot: () => {
-    postFX.render();
-    renderer.domElement.toBlob((blob) => {
-      if (!blob) {
-        hud.setStatus('Screenshot is not supported by this browser');
-        return;
-      }
-      const link = document.createElement('a');
-      link.download = `peshka-${lighting.currentPreset}.png`;
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
-      hud.setStatus('Screenshot saved');
-    }, 'image/png');
-  },
-  setExposure: (value) => {
-    renderer.toneMappingExposure = Number(value);
-  },
+  setExposure: (value) => { renderer.toneMappingExposure = Number(value); },
   setAmbient: (value) => lighting.setAmbient(value),
   setSun: (value) => lighting.setSun(value),
   setPractical: (value) => lighting.setPractical(value),
   setTemperature: (value) => lighting.setTemperature(value),
   setFog: (value) => lighting.setFog(value),
-  setBloom: (value) => {
-    postFX.setBloomStrength(value);
-  },
+  setBloom: (value) => postFX.setBloomStrength(value),
   setBloomThreshold: (value) => postFX.setBloomThreshold(value),
-  setVignette: (value) => postFX.setVignetteDarkness(value),
-  setGrain: (value) => {
-    grainAmount = Number(value);
-    postFX.setGrain(grainAmount);
-  },
+  setSSAO: (enabled) => postFX.setSSAOEnabled(enabled),
+  setSSAORadius: (value) => postFX.setSSAORadius(value),
+  setShadows: (enabled) => lighting.setShadows(enabled),
+  setLookInvertX: (enabled) => player.setLookInversion('x', enabled),
+  setLookInvertY: (enabled) => player.setLookInversion('y', enabled),
   setModelColorBrightness: (value) => {
     modelColorBrightness = Number(value);
     applyModelMaterials();
   },
-  setSSAO: (enabled) => {
-    postFX.setSSAOEnabled(enabled);
-  },
-  setSSAORadius: (value) => postFX.setSSAORadius(value),
-  setShadows: (enabled) => lighting.setShadows(enabled),
-  setLookInvertX: (enabled) => {
-    player.setLookInversion('x', enabled);
-    hud.setStatus(`Horizontal look ${enabled ? 'inverted' : 'standard'}`);
-  },
-  setLookInvertY: (enabled) => {
-    player.setLookInversion('y', enabled);
-    hud.setStatus(`Vertical look ${enabled ? 'inverted' : 'standard'}`);
-  },
   setQuality: setRenderQuality,
-  applyVisualPreset,
-  resetVisuals: () => {
-    applyVisualPreset(activeVisualPreset);
-  },
-  refreshAudit: refreshPerformanceAudit,
-  replaceModel,
+  resetVisuals: applyFrenchBarPreset,
 });
-syncVisualSettings();
-applyVisualPreset(activeVisualPreset);
+applyFrenchBarPreset();
 
 window.addEventListener('keydown', (event) => {
   if (event.code === 'KeyR') player.reset();
-  if (event.code === 'KeyL') {
-    lighting.togglePreset();
-    hud.setMode(lighting.getLabel());
-    syncVisualSettings();
-  }
-  if (event.code === 'KeyP') setIllustrationStyle(!illustrationStyle);
-  if (event.code === 'KeyV') {
-    const mode = player.toggleCameraMode();
-    hud.setCameraMode(mode);
-    hud.setLookInversion(player.getLookInversion());
-    hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
-  }
-  if (event.code === 'KeyF') door.interact(player.getInteractionPosition());
-  if (event.code === 'KeyH') hud.setShareReady(!hud.shareReady);
+  if (event.code === 'KeyV') toggleCameraMode();
 });
 
 loadModel({
@@ -308,21 +173,17 @@ loadModel({
   fallbackUrl: CONFIG.models.fallback,
   centerAndGround: CONFIG.models.centerAndGround,
   onProgress: (percent, url) => {
-    const optimized = url === CONFIG.models.optimized;
-    hud.setLoading(percent, optimized ? 'Loading optimized model' : 'Loading model');
+    hud.setLoading(percent, url === CONFIG.models.optimized ? 'Loading optimized model' : 'Loading model');
   },
   onFallback: () => hud.setStatus('Optimized model not found; loading original GLB'),
 })
   .then(({ model, source }) => {
     currentModel = model;
-    prepareModelForRuntimeCulling(currentModel);
     applyModelMaterials();
     lighting.bindToModel(currentModel);
-    mirrorReflections.bindToModel(currentModel);
-    door.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
-    const modelName = source === CONFIG.models.optimized ? 'optimized model' : 'original model';
-    hud.finishLoading(readyMessage(modelName));
+    const name = source === CONFIG.models.optimized ? 'optimized model' : 'original model';
+    hud.finishLoading(readyMessage(name));
   })
   .catch((error) => {
     console.error('Model failed to load.', error);
@@ -330,25 +191,18 @@ loadModel({
   });
 
 const clock = new THREE.Clock();
-
 function animate() {
-  const delta = Math.min(clock.getDelta(), 0.033);
-  player.update(delta);
-  door.update();
-  hud.showInteraction(door.canInteract(player.getInteractionPosition()), door.isOpen);
+  player.update(Math.min(clock.getDelta(), 0.033));
   postFX.render();
   requestAnimationFrame(animate);
 }
-
 animate();
 
 window.addEventListener('resize', () => {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  camera.aspect = width / height;
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(width, height);
-  postFX.resize(width, height);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  postFX.resize(window.innerWidth, window.innerHeight);
 });
 
 renderer.domElement.addEventListener('webglcontextlost', (event) => {

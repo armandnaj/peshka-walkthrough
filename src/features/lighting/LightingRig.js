@@ -298,13 +298,4 @@ export class LightingRig {
     };
   }
 
-  togglePreset() {
-    const next = this.currentPreset === 'evening' ? 'day' : 'evening';
-    this.applyPreset(next);
-    return next;
-  }
-
-  getLabel() {
-    return this.config.presets[this.currentPreset].label;
-  }
 }

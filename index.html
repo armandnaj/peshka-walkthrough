@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#11151c" />
-    <meta
-      name="description"
-      content="Peshka bar, cafe, and chess club interactive architectural walkthrough"
-    />
+    <meta name="description" content="Peshka interactive architectural walkthrough" />
     <title>Peshka Walkthrough</title>
   </head>
   <body>
@@ -23,233 +20,74 @@
         </div>
       </div>
       <div id="status" role="status">Preparing walkthrough...</div>
-      <div id="loading-progress" class="progress" aria-label="Model loading progress">
-        <span></span>
-      </div>
+      <div id="loading-progress" class="progress" aria-label="Model loading progress"><span></span></div>
     </header>
 
-    <nav id="presentation-tools" aria-label="Presentation controls">
-      <button id="mode-button" type="button" title="Toggle French evening/day (L)">
-        <span class="tool-icon">◐</span>
-        <span id="mode-label">Evening</span>
-      </button>
-      <button id="style-button" type="button" title="Toggle subtle film grain (P)">
-        <span class="tool-icon">G</span>
-        <span id="style-label">Grain</span>
-      </button>
+    <nav id="presentation-tools" aria-label="Walkthrough controls">
       <button id="camera-button" type="button" title="Toggle first/third person camera (V)">
-        <span class="tool-icon">☉</span>
-        <span id="camera-label">First</span>
-      </button>
-      <button id="screenshot-button" type="button" title="Save screenshot">
-        <span class="tool-icon">□</span>
-        <span>Capture</span>
+        <span class="tool-icon">◉</span><span id="camera-label">First</span>
       </button>
       <button id="fullscreen-button" type="button" title="Toggle fullscreen">
-        <span class="tool-icon">↗</span>
-        <span>Full</span>
+        <span class="tool-icon">↗</span><span>Full</span>
       </button>
       <button id="model-button" type="button" title="Load an updated GLB model">
-        <span class="tool-icon">↑</span>
-        <span>Model</span>
+        <span class="tool-icon">↑</span><span>Model</span>
       </button>
-      <button id="settings-button" type="button" title="Presentation settings">
-        <span class="tool-icon">···</span>
-        <span>Adjust</span>
-      </button>
-      <button id="audit-button" type="button" title="Performance audit">
-        <span class="tool-icon">≋</span>
-        <span>Audit</span>
-      </button>
-      <button id="share-button" type="button" title="Hide interface (H)">
-        <span class="tool-icon">○</span>
-        <span>Share</span>
+      <button id="settings-button" type="button" title="French Bar settings">
+        <span class="tool-icon">···</span><span>Adjust</span>
       </button>
     </nav>
     <input id="model-input" type="file" accept=".glb,model/gltf-binary" hidden />
 
-    <aside id="settings" hidden aria-label="Visual settings">
+    <aside id="settings" hidden aria-label="French Bar settings">
       <div class="settings-header">
         <div>
-          <div class="settings-title">Atmosphere</div>
-          <div class="settings-subtitle">Warm French evening controls</div>
+          <div class="settings-title">French Bar</div>
+          <div class="settings-subtitle">Saved walkthrough settings</div>
         </div>
         <button id="settings-close" type="button" aria-label="Close settings">×</button>
       </div>
 
       <section class="settings-section">
         <h2>Lighting</h2>
-        <label class="slider-control">
-          <span>Exposure</span>
-          <output for="exposure-control">1.00</output>
-          <input id="exposure-control" type="range" min="0.55" max="1.65" step="0.01" value="1" />
-        </label>
-        <label class="slider-control">
-          <span>Ambient light</span>
-          <output for="ambient-control">100%</output>
-          <input id="ambient-control" type="range" min="0" max="2" step="0.02" value="1" />
-        </label>
-        <label class="slider-control">
-          <span>Sun brightness</span>
-          <output for="sun-control">100%</output>
-          <input id="sun-control" type="range" min="0" max="2" step="0.02" value="1" />
-        </label>
-        <label class="slider-control">
-          <span>Artificial lights</span>
-          <output for="practical-control">100%</output>
-          <input id="practical-control" type="range" min="0" max="2.5" step="0.02" value="1" />
-        </label>
-        <label class="slider-control">
-          <span>Light temperature</span>
-          <output for="temperature-control">3000 K</output>
-          <input id="temperature-control" type="range" min="2200" max="6500" step="50" value="3000" />
-        </label>
-        <label class="slider-control">
-          <span>Atmosphere</span>
-          <output for="fog-control">100%</output>
-          <input id="fog-control" type="range" min="0" max="2" step="0.02" value="1" />
-        </label>
+        <label class="slider-control"><span>Exposure</span><output for="exposure-control">1.04</output><input id="exposure-control" type="range" min="0.55" max="1.65" step="0.01" value="1.04" /></label>
+        <label class="slider-control"><span>Ambient light</span><output for="ambient-control">134%</output><input id="ambient-control" type="range" min="0" max="2" step="0.02" value="1.34" /></label>
+        <label class="slider-control"><span>Sun brightness</span><output for="sun-control">74%</output><input id="sun-control" type="range" min="0" max="2" step="0.02" value="0.74" /></label>
+        <label class="slider-control"><span>Artificial lights</span><output for="practical-control">114%</output><input id="practical-control" type="range" min="0" max="2.5" step="0.02" value="1.14" /></label>
+        <label class="slider-control"><span>Light temperature</span><output for="temperature-control">3000 K</output><input id="temperature-control" type="range" min="2200" max="6500" step="50" value="3000" /></label>
+        <label class="slider-control"><span>Atmosphere</span><output for="fog-control">74%</output><input id="fog-control" type="range" min="0" max="2" step="0.02" value="0.74" /></label>
       </section>
 
       <section class="settings-section">
         <h2>Image</h2>
-        <label class="slider-control">
-          <span>Bloom</span>
-          <output for="bloom-control">0.16</output>
-          <input id="bloom-control" type="range" min="0" max="0.55" step="0.01" value="0.16" />
-        </label>
-        <label class="slider-control">
-          <span>Bloom threshold</span>
-          <output for="bloom-threshold-control">0.88</output>
-          <input id="bloom-threshold-control" type="range" min="0.55" max="1.15" step="0.01" value="0.88" />
-        </label>
-        <label class="slider-control">
-          <span>Vignette</span>
-          <output for="vignette-control">0.72</output>
-          <input id="vignette-control" type="range" min="0" max="1" step="0.01" value="0.72" />
-        </label>
-        <label class="slider-control">
-          <span>Film grain</span>
-          <output for="grain-control">0.006</output>
-          <input id="grain-control" type="range" min="0" max="0.06" step="0.001" value="0.006" />
-        </label>
-        <label class="slider-control">
-          <span>Model color brightness</span>
-          <output for="model-color-control">100%</output>
-          <input id="model-color-control" type="range" min="0.55" max="1.55" step="0.01" value="1" />
-        </label>
-        <label class="toggle">
-          <span>Contact shading</span>
-          <input id="ssao-control" type="checkbox" checked />
-        </label>
-        <label class="slider-control">
-          <span>Shading radius</span>
-          <output for="ssao-radius-control">14</output>
-          <input id="ssao-radius-control" type="range" min="4" max="28" step="1" value="14" />
-        </label>
-      </section>
-
-      <section class="settings-section">
-        <h2>Presets</h2>
-        <div class="preset-grid" role="group" aria-label="Visual quality presets">
-          <button class="preset-button" data-visual-preset="performance" type="button">
-            <strong>Performance</strong>
-            <span>Smoother walkthrough</span>
-          </button>
-          <button class="preset-button is-active" data-visual-preset="balanced" type="button">
-            <strong>French Bar</strong>
-            <span>Warm evening default</span>
-          </button>
-          <button class="preset-button" data-visual-preset="render" type="button">
-            <strong>Cinematic</strong>
-            <span>Deeper glow and mood</span>
-          </button>
-        </div>
+        <label class="slider-control"><span>Bloom</span><output for="bloom-control">0.30</output><input id="bloom-control" type="range" min="0" max="0.55" step="0.01" value="0.30" /></label>
+        <label class="slider-control"><span>Bloom threshold</span><output for="bloom-threshold-control">0.95</output><input id="bloom-threshold-control" type="range" min="0.55" max="1.15" step="0.01" value="0.95" /></label>
+        <label class="slider-control"><span>Model color brightness</span><output for="model-color-control">136%</output><input id="model-color-control" type="range" min="0.55" max="1.55" step="0.01" value="1.36" /></label>
+        <label class="toggle"><span>Contact shading</span><input id="ssao-control" type="checkbox" checked /></label>
+        <label class="slider-control"><span>Shading radius</span><output for="ssao-radius-control">16</output><input id="ssao-radius-control" type="range" min="4" max="28" step="1" value="16" /></label>
       </section>
 
       <section class="settings-section">
         <h2>Quality</h2>
-        <label class="select-control">
-          <span>Render quality</span>
-          <select id="quality-control">
-            <option value="0.7">Performance</option>
-            <option value="1" selected>French Bar</option>
-            <option value="1.25">High</option>
-            <option value="1.45">Cinematic</option>
-          </select>
-        </label>
-        <label class="toggle">
-          <span>Dynamic shadows</span>
-          <input id="shadows-control" type="checkbox" checked />
-        </label>
+        <label class="select-control"><span>Render quality</span><select id="quality-control"><option value="0.7">Performance</option><option value="1" selected>French Bar</option><option value="1.25">High</option></select></label>
+        <label class="toggle"><span>Dynamic shadows</span><input id="shadows-control" type="checkbox" checked /></label>
       </section>
 
       <section class="settings-section">
         <h2>Camera</h2>
-        <label class="toggle">
-          <span>Invert horizontal look</span>
-          <input id="invert-look-x-control" type="checkbox" />
-        </label>
-        <label class="toggle">
-          <span>Invert vertical look</span>
-          <input id="invert-look-y-control" type="checkbox" />
-        </label>
+        <label class="toggle"><span>Invert horizontal look</span><input id="invert-look-x-control" type="checkbox" /></label>
+        <label class="toggle"><span>Invert vertical look</span><input id="invert-look-y-control" type="checkbox" /></label>
       </section>
 
-      <button id="reset-visuals" class="settings-reset" type="button">
-        Reset current preset
-      </button>
+      <button id="reset-visuals" class="settings-reset" type="button">Reset French Bar</button>
     </aside>
 
-    <aside id="performance-audit" hidden aria-label="Performance audit">
-      <div class="settings-header">
-        <div>
-          <div class="settings-title">Performance audit</div>
-          <div class="settings-subtitle">Live scene diagnostics</div>
-        </div>
-        <button id="audit-close" type="button" aria-label="Close performance audit">×</button>
-      </div>
-
-      <div id="audit-summary" class="audit-grid">
-        <div><span>Draw calls</span><strong>—</strong></div>
-        <div><span>Triangles</span><strong>—</strong></div>
-        <div><span>Texture memory</span><strong>—</strong></div>
-        <div><span>Materials</span><strong>—</strong></div>
-        <div><span>Meshes</span><strong>—</strong></div>
-      </div>
-
-      <section class="settings-section">
-        <h2>Optimization targets</h2>
-        <ul id="audit-suggestions" class="audit-list">
-          <li>Load a model to run the audit.</li>
-        </ul>
-      </section>
-
-      <section class="settings-section">
-        <h2>Merge candidates</h2>
-        <ul id="audit-merge-targets" class="audit-list">
-          <li>No candidates yet.</li>
-        </ul>
-      </section>
-
-      <button id="audit-refresh" class="settings-reset" type="button">
-        Refresh audit
-      </button>
-    </aside>
-
-    <div id="interaction-prompt" hidden>F · Open door</div>
-    <div id="model-drop-overlay" hidden>
-      <div>
-        <strong>Drop updated GLB</strong>
-        <span>The current model will be replaced after the new file loads.</span>
-      </div>
-    </div>
+    <div id="model-drop-overlay" hidden><div><strong>Drop updated GLB</strong><span>The current model will be replaced after the new file loads.</span></div></div>
     <div id="crosshair" aria-hidden="true"></div>
-    <div id="desktop-hint">WASD walk/stairs · Space jump · Drag/Arrows look · RMB zoom · E/Q eye height · V camera · F interact · L light</div>
+    <div id="desktop-hint">WASD walk · Space jump · Drag/Arrows look · RMB zoom · E/Q eye height · V camera</div>
 
     <div id="mobile-controls" aria-label="Touch controls">
       <div id="joystick" aria-label="Walk control"><span id="joystick-knob"></span></div>
-      <button id="door-button" type="button" hidden>Door</button>
       <div class="look-hint">Drag to look</div>
     </div>
 

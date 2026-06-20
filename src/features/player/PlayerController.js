@@ -38,9 +38,6 @@ export class PlayerController {
     this.verticalVelocity = 0;
     this.grounded = false;
     this.jumpQueued = false;
-    this.avatarWalkTime = 0;
-    this.avatarMotion = 0;
-    this.avatarParts = {};
     this.groundProbeTimer = 0;
     this.cachedGroundY = null;
     this.defaultFov = camera.fov;
@@ -87,135 +84,17 @@ export class PlayerController {
     if (!this.scene) return null;
 
     const group = new THREE.Group();
-    group.name = 'StandardMannequin';
+    group.name = 'ThirdPersonBlock';
 
-    const skin = new THREE.MeshStandardMaterial({
-      color: 0xe3b177,
-      roughness: 0.68,
-      metalness: 0.02,
-      emissive: 0x3a1c08,
-      emissiveIntensity: 0.06,
-    });
-    const shirt = new THREE.MeshStandardMaterial({
-      color: 0x2d4f83,
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xc99052,
       roughness: 0.78,
       metalness: 0,
-      emissive: 0x081121,
-      emissiveIntensity: 0.03,
     });
-    const trousers = new THREE.MeshStandardMaterial({
-      color: 0x22170f,
-      roughness: 0.82,
-      metalness: 0,
-    });
-    const makeSegment = (radius, length, material) => {
-      const pivot = new THREE.Group();
-      const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length - radius * 2, 5, 10), material);
-      mesh.position.y = -length * 0.5;
-      mesh.castShadow = true;
-      pivot.add(mesh);
-      return pivot;
-    };
-
-    const root = new THREE.Group();
-    const spine = new THREE.Group();
-    spine.position.y = 0.58;
-
-    const hips = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.2), trousers);
-    hips.position.y = 0.53;
-    hips.castShadow = true;
-
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.21, 0.46, 7, 16), shirt);
-    torso.position.y = 0.36;
-    torso.scale.set(0.9, 1.0, 0.58);
-    torso.castShadow = true;
-
-    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.18), shirt);
-    chest.position.y = 0.56;
-    chest.castShadow = true;
-
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.12, 12), skin);
-    neck.position.y = 0.72;
-    neck.castShadow = true;
-
-    const headPivot = new THREE.Group();
-    headPivot.position.y = 1.34;
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 14), skin);
-    head.scale.set(0.88, 1.05, 0.84);
-    head.castShadow = true;
-
-    headPivot.add(head);
-
-    const leftArm = new THREE.Group();
-    leftArm.position.set(-0.24, 1.09, 0);
-    const leftUpperArm = makeSegment(0.04, 0.34, skin);
-    const leftForearm = makeSegment(0.035, 0.31, skin);
-    leftForearm.position.y = -0.34;
-    const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skin);
-    leftHand.position.y = -0.66;
-    leftHand.castShadow = true;
-    leftArm.add(leftUpperArm, leftForearm, leftHand);
-
-    const rightArm = new THREE.Group();
-    rightArm.position.set(0.24, 1.09, 0);
-    const rightUpperArm = makeSegment(0.04, 0.34, skin);
-    const rightForearm = makeSegment(0.035, 0.31, skin);
-    rightForearm.position.y = -0.34;
-    const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skin);
-    rightHand.position.y = -0.66;
-    rightHand.castShadow = true;
-    rightArm.add(rightUpperArm, rightForearm, rightHand);
-
-    const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.1, 0.48, 0);
-    const leftThigh = makeSegment(0.055, 0.39, trousers);
-    const leftShin = makeSegment(0.045, 0.38, trousers);
-    leftShin.position.y = -0.39;
-    leftLeg.add(leftThigh, leftShin);
-
-    const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.1, 0.48, 0);
-    const rightThigh = makeSegment(0.055, 0.39, trousers);
-    const rightShin = makeSegment(0.045, 0.38, trousers);
-    rightShin.position.y = -0.39;
-    rightLeg.add(rightThigh, rightShin);
-
-    const leftFoot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.25), trousers);
-    leftFoot.position.set(-0.1, 0.08, -0.085);
-    leftFoot.castShadow = true;
-
-    const rightFoot = leftFoot.clone();
-    rightFoot.position.x = 0.1;
-
-    spine.add(torso, chest, neck);
-    root.add(hips, spine, headPivot, leftArm, rightArm, leftLeg, rightLeg, leftFoot, rightFoot);
-    root.scale.setScalar(0.9);
-    group.add(root);
-    this.avatarParts = {
-      root,
-      spine,
-      hips,
-      torso,
-      chest,
-      neck,
-      headPivot,
-      head,
-      leftArm,
-      rightArm,
-      leftUpperArm,
-      rightUpperArm,
-      leftForearm,
-      rightForearm,
-      leftLeg,
-      rightLeg,
-      leftThigh,
-      rightThigh,
-      leftShin,
-      rightShin,
-      leftFoot,
-      rightFoot,
-    };
+    const block = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.15, 0.28), material);
+    block.position.y = 0.575;
+    block.castShadow = true;
+    group.add(block);
 
     group.visible = false;
     this.scene.add(group);
@@ -233,34 +112,6 @@ export class PlayerController {
     );
     this.avatar.rotation.set(0, this.yaw, 0, 'YXZ');
 
-    const stride = Math.sin(this.avatarWalkTime * 5.4) * this.avatarMotion;
-    const parts = this.avatarParts;
-    if (parts.root) parts.root.position.y = 0;
-    if (parts.spine) parts.spine.rotation.set(0, 0, 0);
-    if (parts.hips) parts.hips.rotation.set(0, 0, 0);
-    if (parts.headPivot) parts.headPivot.rotation.set(0, 0, 0);
-    if (parts.leftArm) {
-      parts.leftArm.rotation.x = stride * 0.46;
-      parts.leftArm.rotation.z = -0.08;
-    }
-    if (parts.rightArm) {
-      parts.rightArm.rotation.x = -stride * 0.46;
-      parts.rightArm.rotation.z = 0.08;
-    }
-    if (parts.leftForearm) parts.leftForearm.rotation.set(0, 0, 0);
-    if (parts.rightForearm) parts.rightForearm.rotation.set(0, 0, 0);
-    if (parts.leftLeg) parts.leftLeg.rotation.x = -stride * 0.42;
-    if (parts.rightLeg) parts.rightLeg.rotation.x = stride * 0.42;
-    if (parts.leftShin) parts.leftShin.rotation.x = Math.max(0, stride) * 0.24;
-    if (parts.rightShin) parts.rightShin.rotation.x = Math.max(0, -stride) * 0.24;
-    if (parts.leftFoot) {
-      parts.leftFoot.rotation.x = Math.max(0, stride) * 0.16;
-      parts.leftFoot.rotation.z = 0;
-    }
-    if (parts.rightFoot) {
-      parts.rightFoot.rotation.x = Math.max(0, -stride) * 0.16;
-      parts.rightFoot.rotation.z = 0;
-    }
   }
 
   setCameraMode(mode) {
@@ -620,14 +471,6 @@ export class PlayerController {
     }
 
     if (this.direction.lengthSq() > 1) this.direction.normalize();
-    const movementIntent = this.direction.length();
-    this.avatarMotion = THREE.MathUtils.lerp(
-      this.avatarMotion,
-      movementIntent > 0.03 ? 1 : 0,
-      1 - Math.exp(-8 * delta),
-    );
-    this.avatarWalkTime += delta * (movementIntent > 0.03 ? (running ? 1.55 : 1) : 0.28);
-
     this.previousPosition.copy(this.playerPosition);
     this.forward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     this.right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
