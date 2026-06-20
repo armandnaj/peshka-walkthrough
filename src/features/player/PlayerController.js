@@ -19,6 +19,10 @@ export class PlayerController {
     this.touchMove = new THREE.Vector2();
     this.targetHeight = config.height;
     this.cameraMode = 'first';
+    this.lookInversion = {
+      first: { ...config.firstPersonInversion },
+      third: { ...(config.thirdPerson?.inversion ?? { x: true, y: true }) },
+    };
     this.yaw = camera.rotation.y;
     this.pitch = camera.rotation.x;
     this.collisionMeshes = fallbackFloor ? [fallbackFloor] : [];
@@ -83,7 +87,7 @@ export class PlayerController {
     if (!this.scene) return null;
 
     const group = new THREE.Group();
-    group.name = 'TipsyMannequinPawn';
+    group.name = 'StandardMannequin';
 
     const skin = new THREE.MeshStandardMaterial({
       color: 0xe3b177,
@@ -104,12 +108,6 @@ export class PlayerController {
       roughness: 0.82,
       metalness: 0,
     });
-    const wine = new THREE.MeshStandardMaterial({
-      color: 0x7b2018,
-      roughness: 0.62,
-      metalness: 0.02,
-    });
-
     const makeSegment = (radius, length, material) => {
       const pivot = new THREE.Group();
       const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length - radius * 2, 5, 10), material);
@@ -147,11 +145,7 @@ export class PlayerController {
     head.scale.set(0.88, 1.05, 0.84);
     head.castShadow = true;
 
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), wine);
-    nose.position.set(0, 0, -0.145);
-    nose.scale.set(0.8, 0.75, 1.35);
-    nose.castShadow = true;
-    headPivot.add(head, nose);
+    headPivot.add(head);
 
     const leftArm = new THREE.Group();
     leftArm.position.set(-0.24, 1.09, 0);
@@ -207,7 +201,6 @@ export class PlayerController {
       neck,
       headPivot,
       head,
-      nose,
       leftArm,
       rightArm,
       leftUpperArm,
@@ -235,49 +228,38 @@ export class PlayerController {
     this.avatar.visible = this.cameraMode === 'third';
     this.avatar.position.set(
       this.playerPosition.x,
-      this.playerPosition.y - this.targetHeight + Math.sin(this.avatarWalkTime * 2.0) * 0.015 * this.avatarMotion,
+      this.playerPosition.y - this.targetHeight,
       this.playerPosition.z,
     );
-    const sway = Math.sin(this.avatarWalkTime * 1.35) * this.avatarMotion;
-    const stumble = Math.sin(this.avatarWalkTime * 0.58 + 1.7) * this.avatarMotion;
-    this.avatar.rotation.set(
-      stumble * 0.06,
-      this.yaw + sway * 0.08,
-      sway * 0.16,
-      'YXZ',
-    );
+    this.avatar.rotation.set(0, this.yaw, 0, 'YXZ');
 
-    const stride = Math.sin(this.avatarWalkTime * 4.8) * this.avatarMotion;
-    const loose = Math.sin(this.avatarWalkTime * 3.1 + 0.6) * this.avatarMotion;
+    const stride = Math.sin(this.avatarWalkTime * 5.4) * this.avatarMotion;
     const parts = this.avatarParts;
-    if (parts.root) parts.root.position.y = Math.abs(stride) * 0.025;
-    if (parts.spine) parts.spine.rotation.z = -sway * 0.2;
-    if (parts.hips) parts.hips.rotation.z = sway * 0.14;
-    if (parts.headPivot) {
-      parts.headPivot.rotation.z = sway * 0.34;
-      parts.headPivot.rotation.x = loose * 0.11;
-    }
+    if (parts.root) parts.root.position.y = 0;
+    if (parts.spine) parts.spine.rotation.set(0, 0, 0);
+    if (parts.hips) parts.hips.rotation.set(0, 0, 0);
+    if (parts.headPivot) parts.headPivot.rotation.set(0, 0, 0);
     if (parts.leftArm) {
-      parts.leftArm.rotation.x = stride * 0.8 + loose * 0.2;
-      parts.leftArm.rotation.z = 0.22 - sway * 0.34;
+      parts.leftArm.rotation.x = stride * 0.46;
+      parts.leftArm.rotation.z = -0.08;
     }
     if (parts.rightArm) {
-      parts.rightArm.rotation.x = -stride * 0.68 - loose * 0.35;
-      parts.rightArm.rotation.z = -0.22 - sway * 0.3;
+      parts.rightArm.rotation.x = -stride * 0.46;
+      parts.rightArm.rotation.z = 0.08;
     }
-    if (parts.leftForearm) parts.leftForearm.rotation.x = Math.max(0.08, -stride * 0.22 + 0.18);
-    if (parts.rightForearm) parts.rightForearm.rotation.x = Math.max(0.08, stride * 0.22 + 0.18);
-    if (parts.leftLeg) parts.leftLeg.rotation.x = -stride * 0.5;
-    if (parts.rightLeg) parts.rightLeg.rotation.x = stride * 0.5;
-    if (parts.leftShin) parts.leftShin.rotation.x = Math.max(0, stride) * 0.46;
-    if (parts.rightShin) parts.rightShin.rotation.x = Math.max(0, -stride) * 0.46;
+    if (parts.leftForearm) parts.leftForearm.rotation.set(0, 0, 0);
+    if (parts.rightForearm) parts.rightForearm.rotation.set(0, 0, 0);
+    if (parts.leftLeg) parts.leftLeg.rotation.x = -stride * 0.42;
+    if (parts.rightLeg) parts.rightLeg.rotation.x = stride * 0.42;
+    if (parts.leftShin) parts.leftShin.rotation.x = Math.max(0, stride) * 0.24;
+    if (parts.rightShin) parts.rightShin.rotation.x = Math.max(0, -stride) * 0.24;
     if (parts.leftFoot) {
-      parts.leftFoot.rotation.x = Math.max(0, stride) * 0.28;
-      parts.leftFoot.rotation.z = -sway * 0.12;
+      parts.leftFoot.rotation.x = Math.max(0, stride) * 0.16;
+      parts.leftFoot.rotation.z = 0;
     }
     if (parts.rightFoot) {
-      parts.rightFoot.rotation.x = Math.max(0, -stride) * 0.28;
-      parts.rightFoot.rotation.z = -sway * 0.12;
+      parts.rightFoot.rotation.x = Math.max(0, -stride) * 0.16;
+      parts.rightFoot.rotation.z = 0;
     }
   }
 
@@ -422,15 +404,29 @@ export class PlayerController {
     this.grounded = this.playerPosition.y === desiredY;
   }
 
-  rotateCamera(deltaX, deltaY) {
-    const horizontalSign = this.config.lookInvertX ? 1 : -1;
-    const verticalSign = this.config.lookInvertY ? 1 : -1;
-    this.yaw += deltaX * this.config.lookSpeed * horizontalSign;
-    this.pitch += deltaY * this.config.lookSpeed * verticalSign;
+  setLookInversion(axis, enabled) {
+    if (axis !== 'x' && axis !== 'y') return;
+    this.lookInversion[this.cameraMode][axis] = Boolean(enabled);
+  }
+
+  getLookInversion() {
+    return { ...this.lookInversion[this.cameraMode] };
+  }
+
+  applyLookInput(deltaX, deltaY) {
+    const inversion = this.getLookInversion();
+    const horizontalDirection = inversion.x ? 1 : -1;
+    const verticalDirection = inversion.y ? 1 : -1;
+    const sensitivity = this.config.lookSpeed;
+
+    this.yaw = THREE.MathUtils.euclideanModulo(
+      this.yaw + deltaX * sensitivity * horizontalDirection + Math.PI,
+      Math.PI * 2,
+    ) - Math.PI;
     this.pitch = THREE.MathUtils.clamp(
-      this.pitch,
-      -Math.PI / 2.05,
-      Math.PI / 2.05,
+      this.pitch + deltaY * sensitivity * verticalDirection,
+      -1.48,
+      1.48,
     );
     this.applyCameraTransform();
   }
@@ -520,7 +516,7 @@ export class PlayerController {
       const dx = event.clientX - lastLook.x;
       const dy = event.clientY - lastLook.y;
       lastLook = { x: event.clientX, y: event.clientY };
-      this.rotateCamera(dx, dy);
+      this.applyLookInput(dx, dy);
     });
     const stopLook = (event) => {
       if (event.pointerId !== lookPointer) return;
@@ -586,7 +582,7 @@ export class PlayerController {
       const dx = event.clientX - lastLook.x;
       const dy = event.clientY - lastLook.y;
       lastLook = { x: event.clientX, y: event.clientY };
-      this.rotateCamera(dx, dy);
+      this.applyLookInput(dx, dy);
     });
     const stopLook = (event) => {
       if (event.pointerId === lookPointer) lookPointer = null;
@@ -627,7 +623,7 @@ export class PlayerController {
     const movementIntent = this.direction.length();
     this.avatarMotion = THREE.MathUtils.lerp(
       this.avatarMotion,
-      movementIntent > 0.03 ? 1 : 0.18,
+      movementIntent > 0.03 ? 1 : 0,
       1 - Math.exp(-8 * delta),
     );
     this.avatarWalkTime += delta * (movementIntent > 0.03 ? (running ? 1.55 : 1) : 0.28);
@@ -643,8 +639,9 @@ export class PlayerController {
 
     if (!this.mobile) {
       const keyboardLook = this.config.keyboardLookSpeed * delta;
-      const keyboardHorizontal = this.config.lookInvertX ? -keyboardLook : keyboardLook;
-      const keyboardVertical = this.config.lookInvertY ? -keyboardLook : keyboardLook;
+      const inversion = this.getLookInversion();
+      const keyboardHorizontal = inversion.x ? -keyboardLook : keyboardLook;
+      const keyboardVertical = inversion.y ? -keyboardLook : keyboardLook;
       if (this.keys.has('ArrowLeft')) this.yaw += keyboardHorizontal;
       if (this.keys.has('ArrowRight')) this.yaw -= keyboardHorizontal;
       if (this.keys.has('ArrowUp')) this.pitch += keyboardVertical;

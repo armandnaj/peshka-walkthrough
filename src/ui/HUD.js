@@ -87,6 +87,12 @@ export class HUD {
     document.querySelector('#shadows-control').addEventListener('change', (event) => {
       actions.setShadows(event.target.checked);
     });
+    document.querySelector('#invert-look-x-control').addEventListener('change', (event) => {
+      actions.setLookInvertX(event.target.checked);
+    });
+    document.querySelector('#invert-look-y-control').addEventListener('change', (event) => {
+      actions.setLookInvertY(event.target.checked);
+    });
     document.querySelector('#quality-control').addEventListener('change', (event) => {
       actions.setQuality(event.target.value);
     });
@@ -174,6 +180,11 @@ export class HUD {
     button.classList.toggle('is-active', thirdPerson);
     button.setAttribute('aria-pressed', String(thirdPerson));
     document.querySelector('#camera-label').textContent = thirdPerson ? 'Third' : 'First';
+  }
+
+  setLookInversion({ x, y }) {
+    document.querySelector('#invert-look-x-control').checked = Boolean(x);
+    document.querySelector('#invert-look-y-control').checked = Boolean(y);
   }
 
   setVisualSettings(values) {

@@ -199,6 +199,7 @@ async function replaceModel(file) {
 hud.setMode(lighting.getLabel());
 hud.setStyleMode(illustrationStyle);
 hud.setCameraMode(player.getCameraMode());
+hud.setLookInversion(player.getLookInversion());
 hud.bind({
   toggleMode: () => {
     lighting.togglePreset();
@@ -212,6 +213,7 @@ hud.bind({
   toggleCameraMode: () => {
     const mode = player.toggleCameraMode();
     hud.setCameraMode(mode);
+    hud.setLookInversion(player.getLookInversion());
     hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
   },
   interact: () => door.interact(player.getInteractionPosition()),
@@ -263,6 +265,14 @@ hud.bind({
   },
   setSSAORadius: (value) => postFX.setSSAORadius(value),
   setShadows: (enabled) => lighting.setShadows(enabled),
+  setLookInvertX: (enabled) => {
+    player.setLookInversion('x', enabled);
+    hud.setStatus(`Horizontal look ${enabled ? 'inverted' : 'standard'}`);
+  },
+  setLookInvertY: (enabled) => {
+    player.setLookInversion('y', enabled);
+    hud.setStatus(`Vertical look ${enabled ? 'inverted' : 'standard'}`);
+  },
   setQuality: setRenderQuality,
   applyVisualPreset,
   resetVisuals: () => {
@@ -285,6 +295,7 @@ window.addEventListener('keydown', (event) => {
   if (event.code === 'KeyV') {
     const mode = player.toggleCameraMode();
     hud.setCameraMode(mode);
+    hud.setLookInversion(player.getLookInversion());
     hud.setStatus(mode === 'third' ? 'Third-person camera' : 'First-person camera');
   }
   if (event.code === 'KeyF') door.interact(player.getInteractionPosition());

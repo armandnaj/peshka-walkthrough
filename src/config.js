@@ -47,8 +47,7 @@ export const CONFIG = {
     walkSpeed: 2.2,
     runSpeed: 4,
     lookSpeed: 0.0028,
-    lookInvertX: false,
-    lookInvertY: false,
+    firstPersonInversion: { x: false, y: false },
     keyboardLookSpeed: 1.35,
     zoomFov: 42,
     zoomSpeed: 11,
@@ -65,6 +64,7 @@ export const CONFIG = {
       minDistance: 0.78,
       collisionOffset: 0.12,
       nearClipPadding: 0.18,
+      inversion: { x: true, y: true },
     },
     collision: {
       enabled: true,
