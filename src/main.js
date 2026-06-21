@@ -110,6 +110,7 @@ async function replaceModel(file) {
     });
     const previousModel = currentModel;
     currentModel = result.model;
+    floor.visible = false;
     applyModelMaterials();
     lighting.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
@@ -180,6 +181,7 @@ loadModel({
 })
   .then(({ model, source }) => {
     currentModel = model;
+    floor.visible = false;
     applyModelMaterials();
     lighting.bindToModel(currentModel);
     player.setCollisionModel(currentModel);
