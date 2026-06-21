@@ -483,39 +483,39 @@ button {
 
   #hud {
     z-index: 3;
-    width: calc(100vw - 24px);
+    width: min(280px, calc(100vw - 132px));
     top: max(12px, env(safe-area-inset-top));
     left: 12px;
-    padding: 10px 12px;
+    padding: 7px 9px;
+    border-radius: 10px;
   }
 
   .brand {
-    margin-bottom: 5px;
+    gap: 7px;
+    margin-bottom: 2px;
   }
 
   .brand-mark {
-    width: 27px;
-    height: 27px;
-    font-size: 15px;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
   }
 
   .title {
-    font-size: 16px;
+    font-size: 14px;
+  }
+
+  .eyebrow {
+    display: none;
+  }
+
+  #status {
+    color: rgba(244, 234, 219, 0.58);
+    font-size: 9px;
+    line-height: 1.2;
   }
 
   #presentation-tools {
-    z-index: 5;
-    top: auto;
-    right: 12px;
-    bottom: max(14px, env(safe-area-inset-bottom));
-  }
-
-  #presentation-tools button {
-    min-width: 40px;
-    padding: 6px;
-  }
-
-  #presentation-tools button span:last-child {
     display: none;
   }
 
@@ -546,6 +546,82 @@ button {
     pointer-events: none;
   }
 
+  #mobile-actions,
+  #mobile-movement-actions {
+    position: absolute;
+    display: grid;
+    gap: 9px;
+    pointer-events: auto;
+  }
+
+  #mobile-actions {
+    top: max(84px, calc(env(safe-area-inset-top) + 72px));
+    right: max(14px, env(safe-area-inset-right));
+    grid-template-columns: repeat(2, auto);
+  }
+
+  #mobile-movement-actions {
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(22px, env(safe-area-inset-bottom));
+    justify-items: end;
+  }
+
+  #mobile-actions button,
+  #mobile-movement-actions button {
+    border: 1px solid rgba(244, 234, 219, 0.3);
+    border-radius: 14px;
+    background: rgba(17, 18, 20, 0.76);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+    color: var(--cream);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #mobile-actions button {
+    min-width: 58px;
+    min-height: 42px;
+    padding: 9px 10px;
+  }
+
+  #mobile-jump-button {
+    min-width: 74px;
+    min-height: 46px;
+    padding: 9px 13px;
+  }
+
+  #mobile-camera-button {
+    display: grid;
+    min-width: 94px;
+    min-height: 58px;
+    padding: 8px 14px;
+    gap: 2px;
+    text-align: left;
+  }
+
+  #mobile-camera-button span {
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  #mobile-camera-button strong {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  #mobile-actions button:active,
+  #mobile-movement-actions button:active,
+  #mobile-camera-button.is-active {
+    border-color: rgba(236, 196, 126, 0.66);
+    background: linear-gradient(135deg, rgba(212, 154, 91, 0.42), rgba(29, 36, 63, 0.68));
+  }
+
   #joystick {
     position: absolute;
     bottom: max(22px, env(safe-area-inset-bottom));
@@ -574,8 +650,8 @@ button {
 
   .look-hint {
     position: absolute;
-    right: 24px;
-    bottom: 92px;
+    right: 28px;
+    bottom: 146px;
     color: rgba(244, 234, 219, 0.42);
     font-size: 10px;
     pointer-events: none;

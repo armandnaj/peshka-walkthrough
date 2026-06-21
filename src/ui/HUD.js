@@ -14,6 +14,9 @@ export class HUD {
   bind(actions) {
     document.querySelector('#camera-button').addEventListener('click', actions.toggleCameraMode);
     document.querySelector('#fullscreen-button').addEventListener('click', actions.fullscreen);
+    document.querySelector('#mobile-camera-button').addEventListener('click', actions.toggleCameraMode);
+    document.querySelector('#mobile-fullscreen-button').addEventListener('click', actions.fullscreen);
+    document.querySelector('#mobile-jump-button').addEventListener('click', actions.jump);
     document.querySelector('#model-button').addEventListener('click', () => {
       this.modelInput.value = '';
       this.modelInput.click();
@@ -22,9 +25,11 @@ export class HUD {
       const [file] = this.modelInput.files;
       if (file) actions.replaceModel(file);
     });
-    document.querySelector('#settings-button').addEventListener('click', () => {
+    const toggleSettings = () => {
       this.settings.toggleAttribute('hidden');
-    });
+    };
+    document.querySelector('#settings-button').addEventListener('click', toggleSettings);
+    document.querySelector('#mobile-settings-button').addEventListener('click', toggleSettings);
     document.querySelector('#settings-close').addEventListener('click', () => {
       this.settings.hidden = true;
     });
@@ -107,9 +112,13 @@ export class HUD {
   setCameraMode(mode) {
     const thirdPerson = mode === 'third';
     const button = document.querySelector('#camera-button');
+    const mobileButton = document.querySelector('#mobile-camera-button');
     button.classList.toggle('is-active', thirdPerson);
     button.setAttribute('aria-pressed', String(thirdPerson));
     document.querySelector('#camera-label').textContent = thirdPerson ? 'Third' : 'First';
+    mobileButton.classList.toggle('is-active', thirdPerson);
+    mobileButton.setAttribute('aria-pressed', String(thirdPerson));
+    document.querySelector('#mobile-camera-label').textContent = thirdPerson ? 'Third' : 'First';
   }
 
   setLookInversion({ x, y }) {

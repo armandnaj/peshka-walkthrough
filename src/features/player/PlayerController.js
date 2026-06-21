@@ -56,7 +56,7 @@ export class PlayerController {
         'Space',
       ];
       if (controlledKeys.includes(event.code)) event.preventDefault();
-      if (event.code === 'Space' && !event.repeat) this.jumpQueued = true;
+      if (event.code === 'Space' && !event.repeat) this.requestJump();
       this.keys.add(event.code);
     };
     this.onKeyUp = (event) => this.keys.delete(event.code);
@@ -132,6 +132,10 @@ export class PlayerController {
 
   getInteractionPosition() {
     return this.playerPosition;
+  }
+
+  requestJump() {
+    this.jumpQueued = true;
   }
 
   findGround(position) {

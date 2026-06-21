@@ -89,6 +89,16 @@
     <div id="mobile-controls" aria-label="Touch controls">
       <div id="joystick" aria-label="Walk control"><span id="joystick-knob"></span></div>
       <div class="look-hint">Drag to look</div>
+      <div id="mobile-actions" aria-label="Mobile actions">
+        <button id="mobile-settings-button" type="button" aria-label="Open settings">Adjust</button>
+        <button id="mobile-fullscreen-button" type="button" aria-label="Toggle fullscreen">Full</button>
+      </div>
+      <div id="mobile-movement-actions" aria-label="Movement actions">
+        <button id="mobile-jump-button" type="button">Jump</button>
+        <button id="mobile-camera-button" type="button" aria-pressed="false">
+          <span>Camera</span><strong id="mobile-camera-label">First</strong>
+        </button>
+      </div>
     </div>
 
     <script type="module" src="/src/main.js"></script>

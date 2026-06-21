@@ -135,6 +135,7 @@ hud.setCameraMode(player.getCameraMode());
 hud.setLookInversion(player.getLookInversion());
 hud.bind({
   toggleCameraMode,
+  jump: () => player.requestJump(),
   replaceModel,
   fullscreen: async () => {
     if (document.fullscreenElement) await document.exitFullscreen();
