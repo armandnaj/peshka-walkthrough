@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SimpleCollisionLayer } from './SimpleCollisionLayer.js';
 
 export class PlayerController {
   constructor({ camera, canvas, config, mobile, touchControls, fallbackFloor, scene }) {
@@ -26,6 +27,7 @@ export class PlayerController {
     this.yaw = camera.rotation.y;
     this.pitch = camera.rotation.x;
     this.collisionMeshes = fallbackFloor ? [fallbackFloor] : [];
+    this.horizontalCollision = new SimpleCollisionLayer(config.collision.horizontal);
     this.fallbackFloor = fallbackFloor;
     this.raycaster = new THREE.Raycaster();
     this.cameraRaycaster = new THREE.Raycaster();
@@ -78,6 +80,8 @@ export class PlayerController {
     model?.traverse((object) => {
       if (object.isMesh && object.geometry) this.collisionMeshes.push(object);
     });
+    const blockers = this.horizontalCollision.rebuild(model);
+    console.info(`Built simplified horizontal collision layer with ${blockers} blockers.`);
   }
 
   createThirdPersonAvatar() {
@@ -257,6 +261,33 @@ export class PlayerController {
     );
     if (this.playerPosition.y === desiredY) this.verticalVelocity = 0;
     this.grounded = this.playerPosition.y === desiredY;
+  }
+
+  moveHorizontally(deltaX, deltaZ) {
+    const distance = Math.hypot(deltaX, deltaZ);
+    if (!distance) return;
+
+    const maxMoveStep = this.config.collision.horizontal?.maxMoveStep ?? 0.16;
+    const steps = Math.max(1, Math.ceil(distance / maxMoveStep));
+    const stepX = deltaX / steps;
+    const stepZ = deltaZ / steps;
+    const footY = this.playerPosition.y - this.targetHeight;
+    const capsuleHeight = this.config.collision.horizontal?.capsuleHeight ?? 1.45;
+    const capsuleRadius = this.config.collision.horizontal?.capsuleRadius ?? 0.26;
+
+    for (let step = 0; step < steps; step += 1) {
+      this.playerPosition.x += stepX;
+      this.playerPosition.z += stepZ;
+      if (!this.config.collision.enabled || !this.config.collision.horizontal?.enabled) {
+        continue;
+      }
+      this.horizontalCollision.resolveCapsule(
+        this.playerPosition,
+        footY,
+        capsuleHeight,
+        capsuleRadius,
+      );
+    }
   }
 
   setLookInversion(axis, enabled) {
@@ -478,8 +509,12 @@ export class PlayerController {
     this.previousPosition.copy(this.playerPosition);
     this.forward.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     this.right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    this.playerPosition.addScaledVector(this.right, this.direction.x * speed * delta);
-    this.playerPosition.addScaledVector(this.forward, -this.direction.z * speed * delta);
+    this.moveHorizontally(
+      this.right.x * this.direction.x * speed * delta
+        + this.forward.x * -this.direction.z * speed * delta,
+      this.right.z * this.direction.x * speed * delta
+        + this.forward.z * -this.direction.z * speed * delta,
+    );
     const movedHorizontally =
       this.previousPosition.x !== this.playerPosition.x ||
       this.previousPosition.z !== this.playerPosition.z;
