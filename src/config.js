@@ -56,7 +56,7 @@ export const CONFIG = {
       minDistance: 0.78,
       collisionOffset: 0.12,
       nearClipPadding: 0.18,
-      inversion: { x: true, y: true },
+      inversion: { x: true, y: false },
     },
     collision: {
       enabled: true,
@@ -71,7 +71,7 @@ export const CONFIG = {
       probeInterval: 0.04,
       horizontal: {
         enabled: true,
-        capsuleRadius: 0.26,
+        capsuleRadius: 0.18,
         capsuleHeight: 1.45,
         maxMoveStep: 0.16,
         cellSize: 3,

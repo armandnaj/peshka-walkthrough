@@ -22,7 +22,7 @@ export class PlayerController {
     this.cameraMode = 'first';
     this.lookInversion = {
       first: { ...config.firstPersonInversion },
-      third: { ...(config.thirdPerson?.inversion ?? { x: true, y: true }) },
+      third: { ...(config.thirdPerson?.inversion ?? { x: true, y: false }) },
     };
     this.yaw = camera.rotation.y;
     this.pitch = camera.rotation.x;
@@ -44,6 +44,9 @@ export class PlayerController {
     this.cachedGroundY = null;
     this.defaultFov = camera.fov;
     this.zoomed = false;
+    this.avatarTime = 0;
+    this.avatarMoving = false;
+    this.avatarParts = {};
     this.avatar = this.createThirdPersonAvatar();
     this.applyCameraTransform();
 
@@ -88,34 +91,191 @@ export class PlayerController {
     if (!this.scene) return null;
 
     const group = new THREE.Group();
-    group.name = 'ThirdPersonBlock';
+    group.name = 'ThirdPersonHumanoid';
 
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xc99052,
+    const skinMaterial = new THREE.MeshStandardMaterial({
+      color: 0xf0c28f,
+      roughness: 0.72,
+      metalness: 0,
+    });
+    const shirtMaterial = new THREE.MeshStandardMaterial({
+      color: 0xd1893e,
+      roughness: 0.82,
+      metalness: 0,
+    });
+    const pantsMaterial = new THREE.MeshStandardMaterial({
+      color: 0x172247,
+      roughness: 0.84,
+      metalness: 0,
+    });
+    const shoeMaterial = new THREE.MeshStandardMaterial({
+      color: 0x191612,
       roughness: 0.78,
       metalness: 0,
     });
-    const block = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.15, 0.28), material);
-    block.position.y = 0.575;
-    block.castShadow = true;
-    group.add(block);
+    const faceMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2d2018,
+      roughness: 0.6,
+      metalness: 0,
+    });
+
+    const addMesh = (mesh, parent = group) => {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return mesh;
+    };
+
+    const torso = addMesh(new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.2, 0.48, 5, 10),
+      shirtMaterial,
+    ));
+    torso.name = 'AvatarTorso';
+    torso.position.y = 1.08;
+    torso.scale.set(0.95, 1, 0.72);
+
+    const neck = addMesh(new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.07, 0.12, 10),
+      skinMaterial,
+    ));
+    neck.position.y = 1.42;
+
+    const head = addMesh(new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 16, 12),
+      skinMaterial,
+    ));
+    head.name = 'AvatarHead';
+    head.position.y = 1.62;
+    head.scale.set(0.92, 1.04, 0.92);
+
+    const nose = addMesh(new THREE.Mesh(
+      new THREE.ConeGeometry(0.025, 0.06, 8),
+      skinMaterial,
+    ));
+    nose.position.set(0, 1.61, -0.17);
+    nose.rotation.x = -Math.PI / 2;
+
+    [-0.055, 0.055].forEach((x) => {
+      const eye = addMesh(new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 8, 6),
+        faceMaterial,
+      ));
+      eye.position.set(x, 1.66, -0.158);
+    });
+
+    const makeLimb = ({ name, x, y, length, radius, material, side, isArm }) => {
+      const pivot = new THREE.Group();
+      pivot.name = `${name}Pivot`;
+      pivot.position.set(x, y, 0);
+      group.add(pivot);
+
+      const limb = addMesh(new THREE.Mesh(
+        new THREE.CapsuleGeometry(radius, length, 4, 8),
+        material,
+      ), pivot);
+      limb.name = name;
+      limb.position.y = -length * 0.5;
+      limb.rotation.z = isArm ? side * 0.1 : 0;
+
+      if (isArm) {
+        const hand = addMesh(new THREE.Mesh(
+          new THREE.SphereGeometry(0.052, 10, 8),
+          skinMaterial,
+        ), pivot);
+        hand.name = `${name}Hand`;
+        hand.position.y = -length - 0.03;
+      } else {
+        const foot = addMesh(new THREE.Mesh(
+          new THREE.BoxGeometry(0.13, 0.07, 0.23),
+          shoeMaterial,
+        ), pivot);
+        foot.name = `${name}Foot`;
+        foot.position.set(0, -length - 0.025, -0.045);
+      }
+
+      return pivot;
+    };
+
+    const leftArm = makeLimb({
+      name: 'AvatarLeftArm',
+      x: -0.25,
+      y: 1.32,
+      length: 0.5,
+      radius: 0.045,
+      material: shirtMaterial,
+      side: -1,
+      isArm: true,
+    });
+    const rightArm = makeLimb({
+      name: 'AvatarRightArm',
+      x: 0.25,
+      y: 1.32,
+      length: 0.5,
+      radius: 0.045,
+      material: shirtMaterial,
+      side: 1,
+      isArm: true,
+    });
+    const leftLeg = makeLimb({
+      name: 'AvatarLeftLeg',
+      x: -0.09,
+      y: 0.82,
+      length: 0.62,
+      radius: 0.055,
+      material: pantsMaterial,
+      side: -1,
+      isArm: false,
+    });
+    const rightLeg = makeLimb({
+      name: 'AvatarRightLeg',
+      x: 0.09,
+      y: 0.82,
+      length: 0.62,
+      radius: 0.055,
+      material: pantsMaterial,
+      side: 1,
+      isArm: false,
+    });
+
+    this.avatarParts = {
+      torso,
+      head,
+      leftArm,
+      rightArm,
+      leftLeg,
+      rightLeg,
+    };
 
     group.visible = false;
     this.scene.add(group);
     return group;
   }
 
-  updateAvatar() {
+  updateAvatar(delta = 0) {
     if (!this.avatar) return;
 
     this.avatar.visible = this.cameraMode === 'third';
+    const movingBlend = this.avatarMoving ? 1 : 0;
+    this.avatarTime += delta * (this.avatarMoving ? 7.2 : 2.6);
+    const walk = Math.sin(this.avatarTime);
+    const counterWalk = Math.sin(this.avatarTime + Math.PI);
+    const sway = Math.sin(this.avatarTime * 0.5) * 0.025;
+    const bob = Math.abs(walk) * 0.025 * movingBlend;
+
     this.avatar.position.set(
       this.playerPosition.x,
-      this.playerPosition.y - this.targetHeight,
+      this.playerPosition.y - this.targetHeight + bob,
       this.playerPosition.z,
     );
-    this.avatar.rotation.set(0, this.yaw, 0, 'YXZ');
+    this.avatar.rotation.set(0, this.yaw + sway * movingBlend, 0, 'YXZ');
 
+    const { torso, head, leftArm, rightArm, leftLeg, rightLeg } = this.avatarParts;
+    if (torso) torso.rotation.z = sway * 0.75 * movingBlend;
+    if (head) head.rotation.z = -sway * 0.7 * movingBlend;
+    if (leftArm) leftArm.rotation.x = counterWalk * 0.45 * movingBlend;
+    if (rightArm) rightArm.rotation.x = walk * 0.45 * movingBlend;
+    if (leftLeg) leftLeg.rotation.x = walk * 0.38 * movingBlend;
+    if (rightLeg) rightLeg.rotation.x = counterWalk * 0.38 * movingBlend;
   }
 
   setCameraMode(mode) {
@@ -273,7 +433,7 @@ export class PlayerController {
     const stepZ = deltaZ / steps;
     const footY = this.playerPosition.y - this.targetHeight;
     const capsuleHeight = this.config.collision.horizontal?.capsuleHeight ?? 1.45;
-    const capsuleRadius = this.config.collision.horizontal?.capsuleRadius ?? 0.26;
+    const capsuleRadius = this.config.collision.horizontal?.capsuleRadius ?? 0.18;
 
     for (let step = 0; step < steps; step += 1) {
       this.playerPosition.x += stepX;
@@ -518,6 +678,7 @@ export class PlayerController {
     const movedHorizontally =
       this.previousPosition.x !== this.playerPosition.x ||
       this.previousPosition.z !== this.playerPosition.z;
+    this.avatarMoving = movedHorizontally && this.direction.lengthSq() > 0.0001;
 
     if (!this.mobile) {
       const keyboardLook = this.config.keyboardLookSpeed * delta;
@@ -554,6 +715,7 @@ export class PlayerController {
     this.resolveGround(delta, movedHorizontally);
     this.resolveCeiling();
     this.applyCameraTransform();
+    this.updateAvatar(delta);
   }
 
   reset() {
