@@ -70,7 +70,7 @@ export const CONFIG = {
       groundSnapSpeed: 14,
       probeInterval: 0.04,
       horizontal: {
-        enabled: true,
+        enabled: false,
         capsuleRadius: 0.13,
         capsuleHeight: 1.27,
         maxMoveStep: 0.16,
