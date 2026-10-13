@@ -35,7 +35,7 @@ export const CONFIG = {
     reflections: true,
   },
   player: {
-    height: 1.65,
+    height: 1.48,
     walkSpeed: 2.2,
     runSpeed: 4,
     lookSpeed: 0.0028,
