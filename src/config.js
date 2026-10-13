@@ -59,7 +59,7 @@ export const CONFIG = {
       inversion: { x: true, y: false },
     },
     collision: {
-      enabled: true,
+      enabled: false,
       stepHeight: 0.38,
       maxDrop: 4,
       gravity: 14,
