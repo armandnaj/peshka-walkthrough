@@ -35,7 +35,7 @@ export const CONFIG = {
     reflections: true,
   },
   player: {
-    height: 1.48,
+    height: 1.32,
     walkSpeed: 2.2,
     runSpeed: 4,
     lookSpeed: 0.0028,
@@ -47,7 +47,7 @@ export const CONFIG = {
     jumpSpeed: 4.3,
     minHeight: 0.75,
     maxHeight: 3.2,
-    startPosition: new THREE.Vector3(0, 1.65, 2.7),
+    startPosition: new THREE.Vector3(0, 1.32, 2.7),
     thirdPerson: {
       distance: 3.1,
       height: 0.68,
@@ -71,8 +71,8 @@ export const CONFIG = {
       probeInterval: 0.04,
       horizontal: {
         enabled: true,
-        capsuleRadius: 0.18,
-        capsuleHeight: 1.45,
+        capsuleRadius: 0.13,
+        capsuleHeight: 1.27,
         maxMoveStep: 0.16,
         cellSize: 3,
         skin: 0.015,
