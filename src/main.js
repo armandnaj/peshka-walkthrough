@@ -29,7 +29,7 @@ const player = new PlayerController({
 let currentModel = null;
 let replacingModel = false;
 let renderQuality = 1;
-let modelColorBrightness = CONFIG.visualPresets.frenchBar2.modelColorBrightness;
+let modelColorBrightness = CONFIG.visualPresets.frenchBar21.modelColorBrightness;
 
 function visualSettings() {
   return {
@@ -56,7 +56,7 @@ function setRenderQuality(value) {
 
 function applyModelMaterials() {
   if (!currentModel) return;
-  const preset = CONFIG.visualPresets.frenchBar2;
+  const preset = CONFIG.visualPresets.frenchBar21;
   applyMaterialProfiles(currentModel, {
     ...CONFIG.materials,
     colorBrightness: modelColorBrightness,
@@ -66,7 +66,7 @@ function applyModelMaterials() {
 }
 
 function applyFrenchBarPreset() {
-  const preset = CONFIG.visualPresets.frenchBar2;
+  const preset = CONFIG.visualPresets.frenchBar21;
   renderer.toneMappingExposure = preset.exposure;
   lighting.setAmbient(preset.ambient);
   lighting.setSun(preset.sun);
